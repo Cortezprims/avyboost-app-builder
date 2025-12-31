@@ -78,8 +78,8 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Floating platform icons */}
-        <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-4 opacity-60">
+        {/* Floating platform icons - positioned below hero content */}
+        <div className="mt-16 flex justify-center gap-4 opacity-60">
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0s' }}>
             <span className="text-2xl">📱</span>
           </div>
