@@ -57,6 +57,23 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Social platforms
+        tiktok: "hsl(var(--tiktok))",
+        instagram: "hsl(var(--instagram))",
+        facebook: "hsl(var(--facebook))",
+        telegram: "hsl(var(--telegram))",
+        twitter: "hsl(var(--twitter))",
+        youtube: "hsl(var(--youtube))",
+        whatsapp: "hsl(var(--whatsapp))",
+        // Loyalty tiers
+        bronze: "hsl(var(--bronze))",
+        silver: "hsl(var(--silver))",
+        gold: "hsl(var(--gold))",
+        platinum: "hsl(var(--platinum))",
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
