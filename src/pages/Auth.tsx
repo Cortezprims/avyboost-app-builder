@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Zap, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user, signUp, signIn, signInWithGoogle, loading } = useAuth();
+  
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +35,13 @@ export default function Auth() {
     }
   }, [searchParams]);
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!loginEmail || !loginPassword) {
@@ -38,11 +49,22 @@ export default function Auth() {
       return;
     }
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await signIn(loginEmail, loginPassword);
       toast.success("Connexion réussie !");
-    }, 1500);
+      navigate("/dashboard");
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/invalid-credential' 
+        ? "Email ou mot de passe incorrect"
+        : error.code === 'auth/user-not-found'
+        ? "Aucun compte trouvé avec cet email"
+        : error.code === 'auth/wrong-password'
+        ? "Mot de passe incorrect"
+        : "Erreur de connexion. Veuillez réessayer.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -55,17 +77,56 @@ export default function Auth() {
       toast.error("Veuillez accepter les conditions d'utilisation");
       return;
     }
+    if (signupPassword.length < 8) {
+      toast.error("Le mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await signUp(signupEmail, signupPassword, signupName);
+      toast.success("Compte créé avec succès !");
+      navigate("/dashboard");
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/email-already-in-use'
+        ? "Cet email est déjà utilisé"
+        : error.code === 'auth/weak-password'
+        ? "Le mot de passe est trop faible"
+        : error.code === 'auth/invalid-email'
+        ? "Email invalide"
+        : "Erreur lors de la création du compte. Veuillez réessayer.";
+      toast.error(errorMessage);
+    } finally {
       setIsLoading(false);
-      toast.success("Compte créé avec succès ! Vérifiez votre email.");
-    }, 1500);
+    }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    toast.info(`Connexion via ${provider} bientôt disponible`);
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogle();
+      toast.success("Connexion réussie !");
+      navigate("/dashboard");
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/popup-closed-by-user'
+        ? "Connexion annulée"
+        : "Erreur de connexion avec Google";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleFacebookLogin = () => {
+    toast.info("Connexion via Facebook bientôt disponible");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen gradient-hero flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
@@ -248,7 +309,8 @@ export default function Auth() {
                 <div className="grid grid-cols-2 gap-3 mt-6">
                   <Button
                     variant="outline"
-                    onClick={() => handleSocialLogin("Google")}
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
                     className="h-11"
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -261,7 +323,8 @@ export default function Auth() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => handleSocialLogin("Facebook")}
+                    onClick={handleFacebookLogin}
+                    disabled={isLoading}
                     className="h-11"
                   >
                     <svg className="w-5 h-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
