@@ -1,5 +1,11 @@
 import { Link } from "react-router-dom";
-import { Zap, Instagram, MessageCircle, Twitter } from "lucide-react";
+import { Zap } from "lucide-react";
+import { 
+  InstagramIcon, 
+  TelegramIcon, 
+  TwitterIcon, 
+  WhatsAppIcon 
+} from "@/components/icons/SocialIcons";
 
 const footerLinks = {
   services: [
@@ -10,8 +16,8 @@ const footerLinks = {
     { label: "Twitter", href: "/services/twitter" },
   ],
   support: [
-    { label: "FAQ", href: "/faq" },
-    { label: "Contact", href: "/contact" },
+    { label: "FAQ", href: "/support" },
+    { label: "Contact", href: "/support" },
     { label: "Assistance", href: "/support" },
   ],
   legal: [
@@ -38,14 +44,37 @@ export function Footer() {
               La plateforme n°1 pour booster votre présence sur les réseaux sociaux.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                <Instagram className="w-4 h-4" />
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-[#E4405F] hover:text-white transition-colors"
+              >
+                <InstagramIcon size={16} />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                <MessageCircle className="w-4 h-4" />
+              <a 
+                href="https://wa.me/620462308" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-[#25D366] hover:text-white transition-colors"
+              >
+                <WhatsAppIcon size={16} />
               </a>
-              <a href="#" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                <Twitter className="w-4 h-4" />
+              <a 
+                href="https://t.me/avyboost" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-[#26A5E4] hover:text-white transition-colors"
+              >
+                <TelegramIcon size={16} />
+              </a>
+              <a 
+                href="https://twitter.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-black hover:text-white transition-colors"
+              >
+                <TwitterIcon size={16} />
               </a>
             </div>
           </div>
@@ -55,7 +84,7 @@ export function Footer() {
             <h4 className="font-display font-semibold mb-4">Services</h4>
             <ul className="space-y-2">
               {footerLinks.services.map((link) => (
-                <li key={link.href}>
+                <li key={link.href + link.label}>
                   <Link
                     to={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -71,8 +100,8 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold mb-4">Support</h4>
             <ul className="space-y-2">
-              {footerLinks.support.map((link) => (
-                <li key={link.href}>
+              {footerLinks.support.map((link, idx) => (
+                <li key={link.href + idx}>
                   <Link
                     to={link.href}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"

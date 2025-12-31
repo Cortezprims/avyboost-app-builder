@@ -8,17 +8,11 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingCart, Check, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
+import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
+import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-const platforms = [
-  { id: "tiktok", name: "TikTok", icon: "📱" },
-  { id: "instagram", name: "Instagram", icon: "📸" },
-  { id: "facebook", name: "Facebook", icon: "👍" },
-  { id: "youtube", name: "YouTube", icon: "🎬" },
-  { id: "twitter", name: "Twitter/X", icon: "🐦" },
-  { id: "telegram", name: "Telegram", icon: "✈️" },
-];
+const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram"];
 
 const serviceTypes = [
   { id: "all", name: "Tous" },
@@ -65,11 +59,11 @@ const services = {
 export default function Services() {
   const navigate = useNavigate();
   const { platform: urlPlatform } = useParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { balance } = useWallet();
   const { createOrder } = useOrders();
   
-  const [activePlatform, setActivePlatform] = useState(urlPlatform || "tiktok");
+  const [activePlatform, setActivePlatform] = useState<PlatformKey>((urlPlatform as PlatformKey) || "tiktok");
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<{ qty: number; price: number } | null>(null);
   const [accountUrl, setAccountUrl] = useState("");
@@ -100,7 +94,7 @@ export default function Services() {
     setIsOrdering(true);
     try {
       await createOrder({
-        service: `${selectedServiceData?.name} ${currentPlatform?.name}`,
+        service: `${selectedServiceData?.name} ${currentPlatformConfig.name}`,
         platform: activePlatform,
         quantity: selectedPrice.qty,
         targetUrl: accountUrl,
@@ -118,13 +112,14 @@ export default function Services() {
     }
   };
 
-  const allServices = services[activePlatform as keyof typeof services] || [];
+  const allServices = services[activePlatform] || [];
   const currentServices = serviceFilter === "all" 
     ? allServices 
     : allServices.filter(s => s.type === serviceFilter);
   
   const selectedServiceData = allServices.find(s => s.id === selectedService);
-  const currentPlatform = platforms.find(p => p.id === activePlatform);
+  const currentPlatformConfig = platformConfig[activePlatform];
+  const PlatformIcon = currentPlatformConfig.icon;
   const totalPrice = selectedPrice ? (deliveryType === "express" ? selectedPrice.price * 1.5 : selectedPrice.price) : 0;
 
   return (
@@ -159,24 +154,28 @@ export default function Services() {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Platform Selection */}
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-          {platforms.map((platform) => (
-            <button
-              key={platform.id}
-              onClick={() => {
-                setActivePlatform(platform.id);
-                setSelectedService(null);
-                setSelectedPrice(null);
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
-                activePlatform === platform.id
-                  ? "gradient-primary text-primary-foreground"
-                  : "bg-muted hover:bg-muted/80"
-              }`}
-            >
-              <span>{platform.icon}</span>
-              <span className="text-sm font-medium">{platform.name}</span>
-            </button>
-          ))}
+          {platforms.map((platformId) => {
+            const config = platformConfig[platformId];
+            const Icon = config.icon;
+            return (
+              <button
+                key={platformId}
+                onClick={() => {
+                  setActivePlatform(platformId);
+                  setSelectedService(null);
+                  setSelectedPrice(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
+                  activePlatform === platformId
+                    ? `${config.color} ${config.textColor}`
+                    : "bg-muted hover:bg-muted/80"
+                }`}
+              >
+                <Icon size={18} />
+                <span className="text-sm font-medium">{config.name}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter */}
@@ -218,7 +217,9 @@ export default function Services() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{currentPlatform?.icon}</span>
+                    <div className={`w-10 h-10 rounded-xl ${currentPlatformConfig.color} flex items-center justify-center`}>
+                      <PlatformIcon className={currentPlatformConfig.textColor} size={20} />
+                    </div>
                     <div>
                       <h3 className="font-semibold">{service.name}</h3>
                       <div className="flex gap-1 mt-1">
@@ -272,7 +273,9 @@ export default function Services() {
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{currentPlatform?.icon}</span>
+                  <div className={`w-10 h-10 rounded-xl ${currentPlatformConfig.color} flex items-center justify-center`}>
+                    <PlatformIcon className={currentPlatformConfig.textColor} size={20} />
+                  </div>
                   <div>
                     <p className="font-semibold">{selectedServiceData.name}</p>
                     <p className="text-sm text-muted-foreground">{selectedPrice.qty.toLocaleString()} unités</p>
