@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Zap, User } from "lucide-react";
+import { Menu, Zap } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const navLinks = [
   { href: "/services", label: "Services" },
   { href: "/pricing", label: "Tarifs" },
   { href: "/how-it-works", label: "Comment ça marche" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/support", label: "Support" },
 ];
 
 export function Header() {
@@ -48,7 +49,8 @@ export function Header() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Link to="/auth" className="hidden sm:block">
               <Button variant="ghost" size="sm">
                 Connexion
