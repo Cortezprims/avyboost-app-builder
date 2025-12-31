@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,9 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useOrders } from "@/hooks/useFirestore";
+import { useAuth } from "@/hooks/useAuth";
+import { Timestamp } from "firebase/firestore";
 import {
   Package,
   Clock,
@@ -18,30 +20,12 @@ import {
   Zap,
   ShoppingCart,
   ArrowLeft,
-  Timer,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
-
-interface Order {
-  id: string;
-  service: string;
-  platform: string;
-  quantity: number;
-  delivered: number;
-  status: OrderStatus;
-  date: string;
-  amount: number;
-  deliveryType: "standard" | "express";
-}
-
-const orders: Order[] = [
-  { id: "ORD-001", service: "Followers TikTok", platform: "tiktok", quantity: 1000, delivered: 1000, status: "completed", date: "Aujourd'hui, 14:30", amount: 9000, deliveryType: "express" },
-  { id: "ORD-002", service: "Likes Instagram", platform: "instagram", quantity: 500, delivered: 320, status: "processing", date: "Aujourd'hui, 10:15", amount: 3500, deliveryType: "standard" },
-  { id: "ORD-003", service: "Vues YouTube", platform: "youtube", quantity: 5000, delivered: 0, status: "pending", date: "Hier, 09:00", amount: 10000, deliveryType: "standard" },
-  { id: "ORD-004", service: "Abonnés Twitter", platform: "twitter", quantity: 200, delivered: 0, status: "cancelled", date: "15 Jan, 16:45", amount: 2600, deliveryType: "express" },
-];
 
 const platformIcons: Record<string, string> = {
   tiktok: "📱",
@@ -60,25 +44,65 @@ const statusConfig: Record<OrderStatus, { label: string; icon: typeof CheckCircl
 };
 
 export default function Orders() {
-  const [activeTab, setActiveTab] = useState("all");
+  const { user, loading: authLoading } = useAuth();
+  const { orders, loading, stats, cancelOrder } = useOrders();
+  const [activeTab, setActiveTab] = useState("active");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const handleRepeatOrder = (orderId: string) => {
-    toast.success(`Commande ${orderId} ajoutée au panier`);
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingId(orderId);
+    try {
+      await cancelOrder(orderId);
+      toast.success("Commande annulée et remboursée");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'annulation");
+    } finally {
+      setCancellingId(null);
+    }
   };
 
-  const handleCancelOrder = (orderId: string) => {
-    toast.success(`Annulation demandée pour ${orderId}`);
+  const formatDate = (timestamp: Timestamp) => {
+    if (!timestamp?.toDate) return "";
+    const date = timestamp.toDate();
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    
+    const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    if (isToday) return `Aujourd'hui, ${time}`;
+    if (isYesterday) return `Hier, ${time}`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + `, ${time}`;
   };
 
-  const filteredOrders = activeTab === "all" 
-    ? orders 
-    : orders.filter(o => o.status === activeTab);
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'processing');
+  const historyOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
+  const displayedOrders = activeTab === 'active' ? activeOrders : historyOrders;
 
-  const stats = {
-    total: orders.length,
-    processing: orders.filter(o => o.status === "processing").length,
-    completed: orders.filter(o => o.status === "completed").length,
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <Package className="w-16 h-16 text-muted-foreground/50 mb-4" />
+        <p className="text-lg font-medium mb-2">Connexion requise</p>
+        <p className="text-muted-foreground text-center mb-4">
+          Connectez-vous pour voir vos commandes
+        </p>
+        <Button asChild className="gradient-primary">
+          <Link to="/auth">Se connecter</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -112,7 +136,7 @@ export default function Orders() {
           <Card className="text-center">
             <CardContent className="p-3">
               <RefreshCw className="w-5 h-5 mx-auto mb-1 text-yellow-500" />
-              <p className="text-xl font-bold">{stats.processing}</p>
+              <p className="text-xl font-bold">{stats.processing + stats.pending}</p>
               <p className="text-[10px] text-muted-foreground">En cours</p>
             </CardContent>
           </Card>
@@ -128,16 +152,26 @@ export default function Orders() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all">En cours</TabsTrigger>
-            <TabsTrigger value="completed">Historique</TabsTrigger>
+            <TabsTrigger value="active">
+              En cours ({activeOrders.length})
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              Historique ({historyOrders.length})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-4">
-            {filteredOrders.length === 0 ? (
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : displayedOrders.length === 0 ? (
               <Card className="text-center py-8">
                 <CardContent>
                   <Package className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                  <p className="font-medium mb-2">Aucune commande</p>
+                  <p className="font-medium mb-2">
+                    {activeTab === 'active' ? 'Aucune commande en cours' : 'Aucun historique'}
+                  </p>
                   <Button size="sm" asChild className="gradient-primary">
                     <Link to="/services">
                       <ShoppingCart className="w-4 h-4 mr-2" />
@@ -148,19 +182,19 @@ export default function Orders() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {filteredOrders.map((order) => {
-                  const config = statusConfig[order.status];
-                  const progress = (order.delivered / order.quantity) * 100;
+                {displayedOrders.map((order) => {
+                  const config = statusConfig[order.status as OrderStatus];
+                  const progress = order.quantity > 0 ? (order.delivered / order.quantity) * 100 : 0;
 
                   return (
                     <Card key={order.id} className="overflow-hidden">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl">{platformIcons[order.platform]}</span>
+                            <span className="text-2xl">{platformIcons[order.platform] || "📱"}</span>
                             <div>
                               <h3 className="font-semibold">{order.service}</h3>
-                              <p className="text-xs text-muted-foreground">{order.id}</p>
+                              <p className="text-xs text-muted-foreground">{order.id?.slice(0, 8)}...</p>
                             </div>
                           </div>
                           <Badge className={config.color}>
@@ -181,7 +215,7 @@ export default function Orders() {
 
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-4 text-muted-foreground">
-                            <span>{order.date}</span>
+                            <span>{formatDate(order.createdAt)}</span>
                             {order.deliveryType === "express" && (
                               <Badge variant="secondary" className="text-[10px]">
                                 <Zap className="w-3 h-3 mr-1 text-yellow-500" />
@@ -199,14 +233,26 @@ export default function Orders() {
                             Détails
                           </Button>
                           {order.status === "completed" && (
-                            <Button variant="outline" size="sm" className="flex-1" onClick={() => handleRepeatOrder(order.id)}>
-                              <RotateCcw className="w-4 h-4 mr-1" />
-                              Répéter
+                            <Button variant="outline" size="sm" className="flex-1" asChild>
+                              <Link to={`/services/${order.platform}`}>
+                                <RotateCcw className="w-4 h-4 mr-1" />
+                                Répéter
+                              </Link>
                             </Button>
                           )}
-                          {(order.status === "pending" || order.status === "processing") && (
-                            <Button variant="outline" size="sm" className="flex-1 text-destructive" onClick={() => handleCancelOrder(order.id)}>
-                              <XCircle className="w-4 h-4 mr-1" />
+                          {order.status === "pending" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1 text-destructive" 
+                              onClick={() => order.id && handleCancelOrder(order.id)}
+                              disabled={cancellingId === order.id}
+                            >
+                              {cancellingId === order.id ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <XCircle className="w-4 h-4 mr-1" />
+                              )}
                               Annuler
                             </Button>
                           )}

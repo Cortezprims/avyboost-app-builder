@@ -1,25 +1,25 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useWallet } from "@/hooks/useFirestore";
+import { useAuth } from "@/hooks/useAuth";
+import { Timestamp } from "firebase/firestore";
 import {
   Wallet as WalletIcon,
   Plus,
   ArrowUpRight,
   ArrowDownLeft,
   Clock,
-  CheckCircle2,
-  Smartphone,
-  CreditCard,
   AlertCircle,
   TrendingUp,
-  Zap,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,21 +32,15 @@ const paymentMethods = [
 
 const quickAmounts = [500, 1000, 2500, 5000, 10000, 25000];
 
-const transactions = [
-  { id: 1, type: "credit", amount: 5000, method: "Orange Money", date: "Aujourd'hui, 14:30", status: "completed" },
-  { id: 2, type: "debit", amount: 1500, service: "Followers TikTok", date: "Aujourd'hui, 10:15", status: "completed" },
-  { id: 3, type: "credit", amount: 10000, method: "MTN MoMo", date: "Hier, 18:45", status: "completed" },
-  { id: 4, type: "debit", amount: 2000, service: "Likes Instagram", date: "Hier, 09:20", status: "completed" },
-  { id: 5, type: "credit", amount: 2500, method: "Visa", date: "15 Jan, 16:00", status: "pending" },
-];
-
 export default function Wallet() {
-  const [balance] = useState(15500);
+  const { user, loading: authLoading } = useAuth();
+  const { balance, transactions, loading: walletLoading, recharge } = useWallet();
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("recharge");
+  const [isRecharging, setIsRecharging] = useState(false);
 
-  const handleRecharge = () => {
+  const handleRecharge = async () => {
     const amount = parseInt(rechargeAmount);
     if (!amount || amount < 500) {
       toast.error("Montant minimum : 500 XAF");
@@ -56,8 +50,66 @@ export default function Wallet() {
       toast.error("Sélectionnez un mode de paiement");
       return;
     }
-    toast.success(`Recharge de ${amount.toLocaleString()} XAF initiée`);
+
+    setIsRecharging(true);
+    try {
+      const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod;
+      await recharge(amount, methodName);
+      toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
+      setRechargeAmount("");
+      setSelectedMethod(null);
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la recharge");
+    } finally {
+      setIsRecharging(false);
+    }
   };
+
+  const formatDate = (timestamp: Timestamp) => {
+    if (!timestamp?.toDate) return "";
+    const date = timestamp.toDate();
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const isYesterday = new Date(now.setDate(now.getDate() - 1)).toDateString() === date.toDateString();
+    
+    const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    
+    if (isToday) return `Aujourd'hui, ${time}`;
+    if (isYesterday) return `Hier, ${time}`;
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + `, ${time}`;
+  };
+
+  // Calculate monthly stats
+  const thisMonth = new Date().getMonth();
+  const monthlyCredits = transactions
+    .filter(tx => tx.type === 'credit' && tx.createdAt?.toDate?.()?.getMonth() === thisMonth)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  const monthlyDebits = transactions
+    .filter(tx => tx.type === 'debit' && tx.createdAt?.toDate?.()?.getMonth() === thisMonth)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <WalletIcon className="w-16 h-16 text-muted-foreground/50 mb-4" />
+        <p className="text-lg font-medium mb-2">Connexion requise</p>
+        <p className="text-muted-foreground text-center mb-4">
+          Connectez-vous pour accéder à votre portefeuille
+        </p>
+        <Button asChild className="gradient-primary">
+          <Link to="/auth">Se connecter</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -89,9 +141,13 @@ export default function Wallet() {
               </div>
               <Badge className="bg-white/20 text-white">XAF</Badge>
             </div>
-            <p className="text-4xl font-bold">
-              {balance.toLocaleString()} <span className="text-lg font-normal">FCFA</span>
-            </p>
+            {walletLoading ? (
+              <Loader2 className="w-8 h-8 animate-spin" />
+            ) : (
+              <p className="text-4xl font-bold">
+                {balance.toLocaleString()} <span className="text-lg font-normal">FCFA</span>
+              </p>
+            )}
           </div>
           <CardContent className="p-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -106,14 +162,14 @@ export default function Wallet() {
           <Card className="text-center">
             <CardContent className="p-4">
               <TrendingUp className="w-6 h-6 mx-auto mb-2 text-green-500" />
-              <p className="text-lg font-bold text-green-500">+17,500</p>
+              <p className="text-lg font-bold text-green-500">+{monthlyCredits.toLocaleString()}</p>
               <p className="text-[10px] text-muted-foreground">Recharges ce mois</p>
             </CardContent>
           </Card>
           <Card className="text-center">
             <CardContent className="p-4">
               <ArrowUpRight className="w-6 h-6 mx-auto mb-2 text-primary" />
-              <p className="text-lg font-bold">-8,500</p>
+              <p className="text-lg font-bold">-{monthlyDebits.toLocaleString()}</p>
               <p className="text-[10px] text-muted-foreground">Dépenses ce mois</p>
             </CardContent>
           </Card>
@@ -193,51 +249,71 @@ export default function Wallet() {
               size="lg"
               className="w-full gradient-primary glow"
               onClick={handleRecharge}
-              disabled={!rechargeAmount || !selectedMethod}
+              disabled={!rechargeAmount || !selectedMethod || isRecharging}
             >
-              <Plus className="w-5 h-5 mr-2" />
+              {isRecharging ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Plus className="w-5 h-5 mr-2" />
+              )}
               Recharger {rechargeAmount ? `${parseInt(rechargeAmount).toLocaleString()} XAF` : ""}
             </Button>
           </TabsContent>
 
           {/* History Tab */}
           <TabsContent value="history" className="mt-4">
-            <div className="space-y-3">
-              {transactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === "credit" ? "bg-green-500/10" : "bg-red-500/10"
-                    }`}>
-                      {tx.type === "credit" ? (
-                        <ArrowDownLeft className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <ArrowUpRight className="w-5 h-5 text-red-500" />
+            {walletLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <Card className="text-center py-8">
+                <CardContent>
+                  <Clock className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="font-medium mb-2">Aucune transaction</p>
+                  <p className="text-sm text-muted-foreground">
+                    Vos transactions apparaîtront ici
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="flex items-center justify-between p-3 rounded-xl bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === "credit" ? "bg-green-500/10" : "bg-red-500/10"
+                      }`}>
+                        {tx.type === "credit" ? (
+                          <ArrowDownLeft className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <ArrowUpRight className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {tx.type === "credit" ? tx.method : tx.service}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{formatDate(tx.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${
+                        tx.type === "credit" ? "text-green-500" : "text-foreground"
+                      }`}>
+                        {tx.type === "credit" ? "+" : "-"}{tx.amount.toLocaleString()}
+                      </p>
+                      {tx.status === "pending" && (
+                        <Badge variant="secondary" className="text-[10px]">En attente</Badge>
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {tx.type === "credit" ? tx.method : tx.service}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{tx.date}</p>
-                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`font-bold ${
-                      tx.type === "credit" ? "text-green-500" : "text-foreground"
-                    }`}>
-                      {tx.type === "credit" ? "+" : "-"}{tx.amount.toLocaleString()}
-                    </p>
-                    {tx.status === "pending" && (
-                      <Badge variant="secondary" className="text-[10px]">En attente</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </main>
