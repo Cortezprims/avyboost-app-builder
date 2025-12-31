@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { ShoppingCart, Check, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Search } from "lucide-react";
+import { useOrders, useWallet } from "@/hooks/useFirestore";
+import { useAuth } from "@/hooks/useAuth";
+import { ShoppingCart, Check, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 const platforms = [
-  { id: "tiktok", name: "TikTok", icon: "📱", color: "bg-black" },
-  { id: "instagram", name: "Instagram", icon: "📸", color: "bg-gradient-to-r from-purple-500 to-pink-500" },
-  { id: "facebook", name: "Facebook", icon: "👍", color: "bg-blue-600" },
-  { id: "youtube", name: "YouTube", icon: "🎬", color: "bg-red-600" },
-  { id: "twitter", name: "Twitter/X", icon: "🐦", color: "bg-black" },
-  { id: "telegram", name: "Telegram", icon: "✈️", color: "bg-blue-500" },
+  { id: "tiktok", name: "TikTok", icon: "📱" },
+  { id: "instagram", name: "Instagram", icon: "📸" },
+  { id: "facebook", name: "Facebook", icon: "👍" },
+  { id: "youtube", name: "YouTube", icon: "🎬" },
+  { id: "twitter", name: "Twitter/X", icon: "🐦" },
+  { id: "telegram", name: "Telegram", icon: "✈️" },
 ];
 
 const serviceTypes = [
@@ -64,21 +65,57 @@ const services = {
 export default function Services() {
   const navigate = useNavigate();
   const { platform: urlPlatform } = useParams();
+  const { user, loading: authLoading } = useAuth();
+  const { balance } = useWallet();
+  const { createOrder } = useOrders();
+  
   const [activePlatform, setActivePlatform] = useState(urlPlatform || "tiktok");
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<{ qty: number; price: number } | null>(null);
   const [accountUrl, setAccountUrl] = useState("");
   const [deliveryType, setDeliveryType] = useState<"standard" | "express">("standard");
   const [serviceFilter, setServiceFilter] = useState("all");
+  const [isOrdering, setIsOrdering] = useState(false);
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
+    if (!user) {
+      toast.error("Veuillez vous connecter");
+      navigate("/auth");
+      return;
+    }
+    
     if (!selectedService || !selectedPrice || !accountUrl) {
       toast.error("Remplissez tous les champs");
       return;
     }
+
     const totalPrice = deliveryType === "express" ? selectedPrice.price * 1.5 : selectedPrice.price;
-    toast.success(`Commande de ${totalPrice.toLocaleString()} XAF créée !`);
-    navigate("/orders");
+    
+    if (balance < totalPrice) {
+      toast.error("Solde insuffisant. Rechargez votre portefeuille.");
+      navigate("/wallet");
+      return;
+    }
+
+    setIsOrdering(true);
+    try {
+      await createOrder({
+        service: `${selectedServiceData?.name} ${currentPlatform?.name}`,
+        platform: activePlatform,
+        quantity: selectedPrice.qty,
+        targetUrl: accountUrl,
+        amount: totalPrice,
+        deliveryType,
+        estimatedTime: selectedServiceData?.deliveryTime || "1-24h"
+      });
+      
+      toast.success(`Commande créée avec succès !`);
+      navigate("/orders");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la commande");
+    } finally {
+      setIsOrdering(false);
+    }
   };
 
   const allServices = services[activePlatform as keyof typeof services] || [];
@@ -88,6 +125,7 @@ export default function Services() {
   
   const selectedServiceData = allServices.find(s => s.id === selectedService);
   const currentPlatform = platforms.find(p => p.id === activePlatform);
+  const totalPrice = selectedPrice ? (deliveryType === "express" ? selectedPrice.price * 1.5 : selectedPrice.price) : 0;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -103,7 +141,17 @@ export default function Services() {
               </Link>
               <h1 className="font-display font-bold text-lg">Services</h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              {user && (
+                <Link to="/wallet">
+                  <Badge variant="secondary" className="gap-1">
+                    <Wallet className="w-3 h-3" />
+                    {balance.toLocaleString()} XAF
+                  </Badge>
+                </Link>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
@@ -231,7 +279,7 @@ export default function Services() {
                   </div>
                 </div>
                 <p className="text-xl font-bold text-primary">
-                  {(deliveryType === "express" ? selectedPrice.price * 1.5 : selectedPrice.price).toLocaleString()} XAF
+                  {totalPrice.toLocaleString()} XAF
                 </p>
               </div>
 
@@ -262,14 +310,24 @@ export default function Services() {
                 </Button>
               </div>
 
+              {user && balance < totalPrice && (
+                <p className="text-sm text-destructive text-center">
+                  Solde insuffisant ({balance.toLocaleString()} XAF)
+                </p>
+              )}
+
               <Button
                 size="lg"
                 className="w-full gradient-primary glow"
                 onClick={handleOrder}
-                disabled={!accountUrl}
+                disabled={!accountUrl || isOrdering || (user && balance < totalPrice)}
               >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                Commander maintenant
+                {isOrdering ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                )}
+                {user ? "Commander maintenant" : "Se connecter pour commander"}
               </Button>
             </CardContent>
           </Card>
