@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
+import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { Timestamp } from "firebase/firestore";
 import {
   Package,
@@ -26,15 +27,6 @@ import { toast } from "sonner";
 import { useState } from "react";
 
 type OrderStatus = "pending" | "processing" | "completed" | "cancelled";
-
-const platformIcons: Record<string, string> = {
-  tiktok: "📱",
-  instagram: "📸",
-  facebook: "👍",
-  youtube: "🎬",
-  twitter: "🐦",
-  telegram: "✈️",
-};
 
 const statusConfig: Record<OrderStatus, { label: string; icon: typeof CheckCircle2; color: string }> = {
   completed: { label: "Terminée", icon: CheckCircle2, color: "text-green-500 bg-green-500/10" },
@@ -185,13 +177,18 @@ export default function Orders() {
                 {displayedOrders.map((order) => {
                   const config = statusConfig[order.status as OrderStatus];
                   const progress = order.quantity > 0 ? (order.delivered / order.quantity) * 100 : 0;
+                  const platformId = order.platform as PlatformKey;
+                  const platform = platformConfig[platformId] || platformConfig.tiktok;
+                  const PlatformIcon = platform.icon;
 
                   return (
                     <Card key={order.id} className="overflow-hidden">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3">
-                            <span className="text-2xl">{platformIcons[order.platform] || "📱"}</span>
+                            <div className={`w-10 h-10 rounded-xl ${platform.color} flex items-center justify-center`}>
+                              <PlatformIcon className={platform.textColor} size={20} />
+                            </div>
                             <div>
                               <h3 className="font-semibold">{order.service}</h3>
                               <p className="text-xs text-muted-foreground">{order.id?.slice(0, 8)}...</p>
