@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Star, Users, Zap, Shield, TrendingUp } from "lucide-react";
+import { TikTokIcon, InstagramIcon, FacebookIcon, YouTubeIcon, TwitterIcon } from "@/components/icons/SocialIcons";
 
 export function HeroSection() {
   return (
@@ -79,21 +80,21 @@ export function HeroSection() {
         </div>
 
         {/* Floating platform icons - positioned below hero content */}
-        <div className="mt-16 flex justify-center gap-4 opacity-60">
+        <div className="mt-16 flex justify-center gap-4 opacity-80">
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0s' }}>
-            <span className="text-2xl">📱</span>
+            <TikTokIcon className="w-6 h-6" />
           </div>
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0.1s' }}>
-            <span className="text-2xl">📸</span>
+            <InstagramIcon className="w-6 h-6" />
           </div>
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0.2s' }}>
-            <span className="text-2xl">🎬</span>
+            <FacebookIcon className="w-6 h-6" />
           </div>
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0.3s' }}>
-            <span className="text-2xl">💬</span>
+            <YouTubeIcon className="w-6 h-6" />
           </div>
           <div className="w-12 h-12 rounded-2xl bg-card shadow-lg flex items-center justify-center animate-bounce" style={{ animationDelay: '0.4s' }}>
-            <span className="text-2xl">🐦</span>
+            <TwitterIcon className="w-6 h-6" />
           </div>
         </div>
       </div>
