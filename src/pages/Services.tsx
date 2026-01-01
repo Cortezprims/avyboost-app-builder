@@ -13,7 +13,7 @@ import { services, serviceTypes, qualityBadges } from "@/data/services";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram", "linkedin", "snapchat", "twitch", "spotify", "soundcloud", "whatsapp", "threads"];
+const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram", "whatsapp"];
 
 export default function Services() {
   const navigate = useNavigate();
