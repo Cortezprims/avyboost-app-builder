@@ -9,52 +9,11 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
+import { services, serviceTypes, qualityBadges } from "@/data/services";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
-const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram"];
-
-const serviceTypes = [
-  { id: "all", name: "Tous" },
-  { id: "followers", name: "Followers" },
-  { id: "likes", name: "Likes" },
-  { id: "views", name: "Vues" },
-];
-
-const qualityBadges = {
-  fast: { label: "Rapide", icon: Zap, color: "bg-yellow-500/10 text-yellow-600" },
-  premium: { label: "Premium", icon: Star, color: "bg-purple-500/10 text-purple-600" },
-  guaranteed: { label: "Garanti", icon: Shield, color: "bg-green-500/10 text-green-600" },
-};
-
-const services = {
-  tiktok: [
-    { id: 1, name: "Followers", type: "followers", prices: [{ qty: 100, price: 1500 }, { qty: 500, price: 5000 }, { qty: 1000, price: 9000 }], popular: true, badges: ["fast", "guaranteed"], deliveryTime: "1-24h" },
-    { id: 2, name: "Likes", type: "likes", prices: [{ qty: 100, price: 1000 }, { qty: 500, price: 4000 }, { qty: 1000, price: 6500 }], badges: ["fast"], deliveryTime: "1-12h" },
-    { id: 3, name: "Vues", type: "views", prices: [{ qty: 1000, price: 750 }, { qty: 5000, price: 2500 }, { qty: 10000, price: 4500 }], badges: ["fast", "premium"], deliveryTime: "0-6h" },
-  ],
-  instagram: [
-    { id: 4, name: "Followers", type: "followers", prices: [{ qty: 100, price: 1750 }, { qty: 500, price: 6500 }, { qty: 1000, price: 11500 }], popular: true, badges: ["premium", "guaranteed"], deliveryTime: "1-24h" },
-    { id: 5, name: "Likes", type: "likes", prices: [{ qty: 100, price: 1000 }, { qty: 500, price: 3500 }, { qty: 1000, price: 6000 }], badges: ["fast"], deliveryTime: "0-12h" },
-    { id: 6, name: "Vues Reels", type: "views", prices: [{ qty: 1000, price: 1000 }, { qty: 5000, price: 3500 }, { qty: 10000, price: 6000 }], badges: ["fast", "premium"], deliveryTime: "0-6h" },
-  ],
-  facebook: [
-    { id: 7, name: "Likes Page", type: "likes", prices: [{ qty: 100, price: 2500 }, { qty: 500, price: 10000 }, { qty: 1000, price: 17500 }], popular: true, badges: ["guaranteed"], deliveryTime: "1-24h" },
-    { id: 8, name: "Followers", type: "followers", prices: [{ qty: 100, price: 2000 }, { qty: 500, price: 7500 }, { qty: 1000, price: 13500 }], badges: ["fast"], deliveryTime: "1-24h" },
-  ],
-  youtube: [
-    { id: 9, name: "Abonnés", type: "followers", prices: [{ qty: 100, price: 5000 }, { qty: 500, price: 20000 }, { qty: 1000, price: 35000 }], popular: true, badges: ["premium", "guaranteed"], deliveryTime: "24-72h" },
-    { id: 10, name: "Vues", type: "views", prices: [{ qty: 1000, price: 2500 }, { qty: 5000, price: 10000 }, { qty: 10000, price: 17500 }], badges: ["fast"], deliveryTime: "1-24h" },
-  ],
-  twitter: [
-    { id: 11, name: "Followers", type: "followers", prices: [{ qty: 100, price: 2000 }, { qty: 500, price: 7500 }, { qty: 1000, price: 13500 }], popular: true, badges: ["fast", "guaranteed"], deliveryTime: "1-24h" },
-    { id: 12, name: "Likes", type: "likes", prices: [{ qty: 100, price: 1250 }, { qty: 500, price: 5000 }, { qty: 1000, price: 9000 }], badges: ["fast"], deliveryTime: "0-12h" },
-  ],
-  telegram: [
-    { id: 13, name: "Membres", type: "followers", prices: [{ qty: 100, price: 2500 }, { qty: 500, price: 10000 }, { qty: 1000, price: 17500 }], popular: true, badges: ["premium"], deliveryTime: "12-48h" },
-    { id: 14, name: "Vues", type: "views", prices: [{ qty: 1000, price: 1000 }, { qty: 5000, price: 4000 }, { qty: 10000, price: 7500 }], badges: ["fast"], deliveryTime: "0-6h" },
-  ],
-};
+const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram", "linkedin", "snapchat", "twitch", "spotify", "soundcloud", "whatsapp", "threads"];
 
 export default function Services() {
   const navigate = useNavigate();
