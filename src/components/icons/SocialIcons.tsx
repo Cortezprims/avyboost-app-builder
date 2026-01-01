@@ -199,48 +199,6 @@ export const platformConfig = {
     textColor: "text-white",
     brandColor: "#25D366",
   },
-  linkedin: {
-    name: "LinkedIn",
-    icon: LinkedInIcon,
-    color: "bg-[#0A66C2]",
-    textColor: "text-white",
-    brandColor: "#0A66C2",
-  },
-  snapchat: {
-    name: "Snapchat",
-    icon: SnapchatIcon,
-    color: "bg-[#FFFC00]",
-    textColor: "text-black",
-    brandColor: "#FFFC00",
-  },
-  twitch: {
-    name: "Twitch",
-    icon: TwitchIcon,
-    color: "bg-[#9146FF]",
-    textColor: "text-white",
-    brandColor: "#9146FF",
-  },
-  spotify: {
-    name: "Spotify",
-    icon: SpotifyIcon,
-    color: "bg-[#1DB954]",
-    textColor: "text-white",
-    brandColor: "#1DB954",
-  },
-  soundcloud: {
-    name: "SoundCloud",
-    icon: SoundCloudIcon,
-    color: "bg-[#FF5500]",
-    textColor: "text-white",
-    brandColor: "#FF5500",
-  },
-  threads: {
-    name: "Threads",
-    icon: ThreadsIcon,
-    color: "bg-black dark:bg-white/10",
-    textColor: "text-white",
-    brandColor: "#000000",
-  },
 };
 
 export type PlatformKey = keyof typeof platformConfig;
