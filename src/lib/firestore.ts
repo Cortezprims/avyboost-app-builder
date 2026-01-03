@@ -41,6 +41,7 @@ export interface Order {
   deliveryType: 'standard' | 'express';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   estimatedTime: string;
+  exoboosterOrderId?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

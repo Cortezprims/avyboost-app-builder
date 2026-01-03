@@ -1,1 +1,4 @@
 project_id = "inhzvcfoiovpotoxwwzf"
+
+[functions.exobooster]
+verify_jwt = false

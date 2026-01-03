@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
+import { useExoBooster } from "@/hooks/useExoBooster";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { services, serviceTypes, qualityBadges } from "@/data/services";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
@@ -21,6 +22,7 @@ export default function Services() {
   const { user } = useAuth();
   const { balance } = useWallet();
   const { createOrder } = useOrders();
+  const { createOrder: createExoBoosterOrder, isLoading: exoLoading, error: exoError } = useExoBooster();
   
   const [activePlatform, setActivePlatform] = useState<PlatformKey>((urlPlatform as PlatformKey) || "tiktok");
   const [selectedService, setSelectedService] = useState<number | null>(null);
@@ -52,6 +54,18 @@ export default function Services() {
 
     setIsOrdering(true);
     try {
+      // Call ExoBooster API to create the order
+      const exoResponse = await createExoBoosterOrder(
+        selectedService.toString(),
+        accountUrl,
+        selectedPrice.qty
+      );
+
+      if (!exoResponse) {
+        throw new Error(exoError || "Erreur lors de la commande ExoBooster");
+      }
+
+      // Save order to Firestore with ExoBooster order ID
       await createOrder({
         service: `${selectedServiceData?.name} ${currentPlatformConfig.name}`,
         platform: activePlatform,
@@ -59,12 +73,14 @@ export default function Services() {
         targetUrl: accountUrl,
         amount: totalPrice,
         deliveryType,
-        estimatedTime: selectedServiceData?.deliveryTime || "1-24h"
+        estimatedTime: selectedServiceData?.deliveryTime || "1-24h",
+        exoboosterOrderId: exoResponse.order,
       });
       
-      toast.success(`Commande créée avec succès !`);
+      toast.success(`Commande créée avec succès ! ID: ${exoResponse.order}`);
       navigate("/orders");
     } catch (error: any) {
+      console.error("Order error:", error);
       toast.error(error.message || "Erreur lors de la commande");
     } finally {
       setIsOrdering(false);
