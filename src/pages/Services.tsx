@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useExoBooster } from "@/hooks/useExoBooster";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { services, serviceTypes, qualityBadges } from "@/data/services";
+import { getExoBoosterServiceId, validateQuantity } from "@/data/exoboosterMapping";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,9 +55,22 @@ export default function Services() {
 
     setIsOrdering(true);
     try {
-      // Call ExoBooster API to create the order
+      // Get the ExoBooster service ID from mapping
+      const exoServiceId = getExoBoosterServiceId(activePlatform, selectedService);
+      
+      if (!exoServiceId) {
+        throw new Error("Service non disponible via l'API");
+      }
+
+      // Validate quantity against ExoBooster limits
+      const validation = validateQuantity(activePlatform, selectedService, selectedPrice.qty);
+      if (!validation.valid) {
+        throw new Error(validation.message || "Quantité invalide");
+      }
+
+      // Call ExoBooster API to create the order with the correct service ID
       const exoResponse = await createExoBoosterOrder(
-        selectedService.toString(),
+        exoServiceId.toString(),
         accountUrl,
         selectedPrice.qty
       );
