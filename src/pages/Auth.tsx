@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Zap, Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import logoImg from "@/assets/logo.jpg";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -146,9 +147,7 @@ export default function Auth() {
         <Card className="border-2 shadow-2xl">
           <CardHeader className="text-center pb-2">
             <Link to="/" className="inline-flex items-center gap-2 justify-center mb-4">
-              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center glow">
-                <Zap className="w-7 h-7 text-primary-foreground" />
-              </div>
+              <img src={logoImg} alt="AVYboost" className="w-12 h-12 rounded-xl object-cover" />
             </Link>
             <CardTitle className="font-display text-2xl">
               {activeTab === "login" ? "Bienvenue !" : "Créer un compte"}

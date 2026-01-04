@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Zap } from "lucide-react";
+import { Menu } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import logoImg from "@/assets/logo.jpg";
 
 const navLinks = [
   { href: "/services", label: "Services" },
@@ -22,9 +23,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow">
-              <Zap className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src={logoImg} alt="AVYboost" className="w-10 h-10 rounded-xl object-cover" />
             <span className="font-display font-bold text-xl">
               <span className="gradient-text">Avy</span>
               <span className="text-foreground">Boost</span>
@@ -72,9 +71,7 @@ export function Header() {
               <SheetContent side="right" className="w-80">
                 <div className="flex flex-col gap-6 mt-8">
                   <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-                    <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                      <Zap className="w-6 h-6 text-primary-foreground" />
-                    </div>
+                    <img src={logoImg} alt="AVYboost" className="w-10 h-10 rounded-xl object-cover" />
                     <span className="font-display font-bold text-xl">AvyBoost</span>
                   </Link>
 
