@@ -9,8 +9,9 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useExoBooster } from "@/hooks/useExoBooster";
+import { useSyncedServices } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
-import { services, serviceTypes, qualityBadges } from "@/data/services";
+import { serviceTypes, qualityBadges } from "@/data/services";
 import { getExoBoosterServiceId, validateQuantity } from "@/data/exoboosterMapping";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -101,7 +102,9 @@ export default function Services() {
     }
   };
 
-  const allServices = services[activePlatform] || [];
+  // Utiliser les services avec les prix synchronisés (ExoBooster + 25% marge)
+  const syncedServices = useSyncedServices();
+  const allServices = syncedServices[activePlatform] || [];
   const currentServices = serviceFilter === "all" 
     ? allServices 
     : allServices.filter(s => s.type === serviceFilter);
