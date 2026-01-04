@@ -31,15 +31,21 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       
       if (user) {
-        // Fetch user profile from Firestore
-        const profileDoc = await getDoc(doc(db, 'users', user.uid));
-        if (profileDoc.exists()) {
-          setProfile(profileDoc.data() as UserProfile);
-        }
+        // Fetch user profile from Firestore - deferred to avoid deadlock
+        setTimeout(async () => {
+          try {
+            const profileDoc = await getDoc(doc(db, 'users', user.uid));
+            if (profileDoc.exists()) {
+              setProfile(profileDoc.data() as UserProfile);
+            }
+          } catch (error) {
+            console.error('Error fetching profile:', error);
+          }
+        }, 0);
       } else {
         setProfile(null);
       }
