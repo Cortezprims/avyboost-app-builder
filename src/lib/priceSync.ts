@@ -4,8 +4,9 @@
 
 import { exoboosterMapping, ExoBoosterServiceInfo } from '@/data/exoboosterMapping';
 
-// Taux de change USD vers XAF (à mettre à jour régulièrement)
-const USD_TO_XAF_RATE = 615; // Environ 615 XAF = 1 USD
+// Taux de change USD vers XAF (basé sur les prix ExoBooster observés)
+// ExoBooster affiche: 1128 XAF pour rate 1.41 USD → 1128/1.41 = 800 XAF/USD
+const USD_TO_XAF_RATE = 800;
 
 // Marge AVYboost
 const MARGIN_PERCENTAGE = 0.25; // 25%
@@ -21,20 +22,18 @@ export interface CalculatedPrice {
  * Calcule le prix AVYboost en XAF à partir du taux ExoBooster
  * @param exoRateUSD - Taux ExoBooster en USD pour 1000 unités
  * @param quantity - Quantité souhaitée
- * @returns Prix en XAF arrondi
+ * @returns Prix en XAF arrondi avec marge de 25%
  */
 export function calculateAvyPrice(exoRateUSD: number, quantity: number): number {
-  // Prix de base en USD pour la quantité
-  const basePriceUSD = (exoRateUSD / 1000) * quantity;
+  // Prix ExoBooster en XAF pour la quantité demandée
+  // rate est en USD/1000, donc on calcule: (rate * quantity / 1000) * USD_TO_XAF
+  const exoPriceXAF = (exoRateUSD * quantity / 1000) * USD_TO_XAF_RATE;
   
-  // Conversion en XAF
-  const basePriceXAF = basePriceUSD * USD_TO_XAF_RATE;
-  
-  // Ajout de la marge de 25%
-  const finalPrice = basePriceXAF * (1 + MARGIN_PERCENTAGE);
+  // Ajout de la marge de 25% pour AVYboost
+  const avyPrice = exoPriceXAF * (1 + MARGIN_PERCENTAGE);
   
   // Arrondi au multiple de 5 le plus proche pour des prix propres
-  return Math.ceil(finalPrice / 5) * 5;
+  return Math.ceil(avyPrice / 5) * 5;
 }
 
 /**
