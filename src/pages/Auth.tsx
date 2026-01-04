@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Mail, Lock, User, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import logoImg from "@/assets/logo.jpg";
+import logoImg from "@/assets/logo.png";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
