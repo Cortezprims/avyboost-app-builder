@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
@@ -13,8 +14,62 @@ import { useSyncedServices } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { serviceTypes, qualityBadges } from "@/data/services";
 import { getExoBoosterServiceId, validateQuantity } from "@/data/exoboosterMapping";
-import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet } from "lucide-react";
+import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet, Info } from "lucide-react";
 import { toast } from "sonner";
+
+// Réactions disponibles par plateforme
+const platformReactions: Record<string, { emoji: string; label: string }[]> = {
+  facebook: [
+    { emoji: "👍", label: "J'aime" },
+    { emoji: "❤️", label: "J'adore" },
+    { emoji: "😂", label: "Haha" },
+    { emoji: "😮", label: "Wouah" },
+    { emoji: "😢", label: "Triste" },
+    { emoji: "😡", label: "Grrr" },
+  ],
+  instagram: [
+    { emoji: "❤️", label: "J'aime" },
+  ],
+  youtube: [
+    { emoji: "👍", label: "J'aime" },
+    { emoji: "👎", label: "Je n'aime pas" },
+  ],
+  tiktok: [
+    { emoji: "❤️", label: "J'aime" },
+  ],
+  twitter: [
+    { emoji: "❤️", label: "J'aime" },
+  ],
+  telegram: [
+    { emoji: "👍", label: "Pouce" },
+    { emoji: "❤️", label: "Coeur" },
+    { emoji: "🔥", label: "Feu" },
+    { emoji: "🎉", label: "Fête" },
+    { emoji: "😂", label: "MDR" },
+  ],
+  whatsapp: [
+    { emoji: "👍", label: "Pouce" },
+    { emoji: "❤️", label: "Coeur" },
+    { emoji: "😂", label: "MDR" },
+  ],
+};
+
+// Notes par type de service
+const getServiceNotes = (platform: string, serviceType: string): string[] => {
+  const notes: string[] = [];
+  
+  // Notes communes
+  notes.push(`Assurez-vous que le compte/publication ${platform} n'est pas privé !`);
+  
+  if (serviceType === "comments") {
+    notes.push("Assurez-vous qu'aucun des commentaires ne comporte de \"@\" ou \"#\"");
+    notes.push("Si vous avez déjà acheté des commentaires et que vous souhaitez en acheter à nouveau pour la même publication, assurez-vous que votre commande précédente est déjà terminée !");
+  }
+  
+  notes.push("Une qualité élevée signifie une garantie plus longue, des comptes/engagements d'apparence plus réelle et moins de chutes");
+  
+  return notes;
+};
 
 const platforms: PlatformKey[] = ["tiktok", "instagram", "facebook", "youtube", "twitter", "telegram", "whatsapp"];
 
@@ -33,6 +88,8 @@ export default function Services() {
   const [deliveryType, setDeliveryType] = useState<"standard" | "express">("standard");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [isOrdering, setIsOrdering] = useState(false);
+  const [comments, setComments] = useState("");
+  const [selectedReaction, setSelectedReaction] = useState<string>("");
 
   const handleOrder = async () => {
     if (!user) {
@@ -284,6 +341,51 @@ export default function Services() {
                 onChange={(e) => setAccountUrl(e.target.value)}
               />
 
+              {/* Champ commentaires pour les services de type comments */}
+              {selectedServiceData.type === "comments" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Commentaires:
+                    <span className="text-muted-foreground font-normal ml-1">
+                      (Séparez chaque commentaire en passant à une nouvelle ligne)
+                    </span>
+                  </label>
+                  <Textarea
+                    placeholder="Entrez vos commentaires ici...&#10;Un commentaire par ligne"
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Min: {selectedPrice.qty} commentaires
+                  </p>
+                </div>
+              )}
+
+              {/* Sélecteur de réactions pour les services de type reactions/likes */}
+              {selectedServiceData.type === "reactions" && platformReactions[activePlatform] && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Type de réaction:</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {platformReactions[activePlatform].map((reaction) => (
+                      <button
+                        key={reaction.emoji}
+                        onClick={() => setSelectedReaction(reaction.emoji)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                          selectedReaction === reaction.emoji
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="text-2xl">{reaction.emoji}</span>
+                        <span className="text-sm">{reaction.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button
                   variant={deliveryType === "standard" ? "default" : "outline"}
@@ -324,6 +426,19 @@ export default function Services() {
                 )}
                 {user ? "Commander maintenant" : "Se connecter pour commander"}
               </Button>
+
+              {/* Bulle de notes */}
+              <div className="mt-4 p-4 rounded-xl bg-pink-100 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-800">
+                <div className="flex items-start gap-2 mb-2">
+                  <Info className="w-4 h-4 text-pink-600 dark:text-pink-400 mt-0.5 flex-shrink-0" />
+                  <span className="font-medium text-pink-700 dark:text-pink-300">Notes:</span>
+                </div>
+                <ol className="list-decimal list-inside space-y-2 text-sm text-pink-700 dark:text-pink-300">
+                  {getServiceNotes(currentPlatformConfig.name, selectedServiceData.type).map((note, index) => (
+                    <li key={index}>{note}</li>
+                  ))}
+                </ol>
+              </div>
             </CardContent>
           </Card>
         )}
