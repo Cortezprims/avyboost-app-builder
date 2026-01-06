@@ -40,9 +40,11 @@ export default function Wallet() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [activeTab, setActiveTab] = useState("recharge");
   const [isRecharging, setIsRecharging] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking'>('idle');
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking' | 'success'>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const paymentAmountRef = useRef<number>(0);
+  const paymentMethodRef = useRef<string>('');
 
   // Cleanup interval on unmount
   useEffect(() => {
@@ -70,24 +72,34 @@ export default function Wallet() {
         // Payment successful - credit the wallet
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
+          statusCheckInterval.current = null;
         }
         
-        const amount = parseInt(rechargeAmount);
-        const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod;
+        // Use refs to get the correct values
+        const amount = paymentAmountRef.current;
+        const methodName = paymentMethodRef.current;
         
         await recharge(amount, methodName || 'Mobile Money');
         
-        setPaymentStatus('idle');
-        setPaymentReference(null);
-        setRechargeAmount("");
-        setSelectedMethod(null);
-        setPhoneNumber("");
-        setIsRecharging(false);
+        // Update UI to show success
+        setPaymentStatus('success');
         
         toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
+        
+        // Reset form after a short delay to show success state
+        setTimeout(() => {
+          setPaymentStatus('idle');
+          setPaymentReference(null);
+          setRechargeAmount("");
+          setSelectedMethod(null);
+          setPhoneNumber("");
+          setIsRecharging(false);
+        }, 2000);
+        
       } else if (data?.data?.status === 'FAILED') {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
+          statusCheckInterval.current = null;
         }
         setPaymentStatus('idle');
         setPaymentReference(null);
@@ -117,6 +129,11 @@ export default function Wallet() {
 
     setIsRecharging(true);
     setPaymentStatus('pending');
+    
+    // Store values in refs to avoid stale closures
+    paymentAmountRef.current = amount;
+    const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod || '';
+    paymentMethodRef.current = methodName;
 
     try {
       const { data, error } = await supabase.functions.invoke('campay-payment', {
@@ -140,7 +157,8 @@ export default function Wallet() {
       }
 
       if (data?.data?.reference) {
-        setPaymentReference(data.data.reference);
+        const reference = data.data.reference;
+        setPaymentReference(reference);
         setPaymentStatus('checking');
         
         toast.info("Confirmez le paiement sur votre téléphone", {
@@ -150,20 +168,22 @@ export default function Wallet() {
 
         // Start checking payment status every 5 seconds
         statusCheckInterval.current = setInterval(() => {
-          checkPaymentStatus(data.data.reference);
+          checkPaymentStatus(reference);
         }, 5000);
 
         // Stop checking after 3 minutes
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           if (statusCheckInterval.current) {
             clearInterval(statusCheckInterval.current);
-            if (paymentStatus === 'checking') {
-              setPaymentStatus('idle');
-              setIsRecharging(false);
-              toast.error("Délai expiré. Vérifiez votre historique.");
-            }
+            statusCheckInterval.current = null;
+            setPaymentStatus('idle');
+            setIsRecharging(false);
+            toast.error("Délai expiré. Vérifiez votre historique.");
           }
         }, 180000);
+        
+        // Clear timeout if payment completes before 3 minutes
+        return () => clearTimeout(timeoutId);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erreur lors du paiement";
@@ -375,15 +395,29 @@ export default function Wallet() {
 
             {/* Payment Status */}
             {paymentStatus !== 'idle' && (
-              <Card className="bg-primary/5 border-primary/20">
+              <Card className={`border ${
+                paymentStatus === 'success' 
+                  ? 'bg-green-500/10 border-green-500/30' 
+                  : 'bg-primary/5 border-primary/20'
+              }`}>
                 <CardContent className="p-4 flex items-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  {paymentStatus === 'success' ? (
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                      <span className="text-white text-xs">✓</span>
+                    </div>
+                  ) : (
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  )}
                   <div>
                     <p className="font-medium text-sm">
-                      {paymentStatus === 'pending' ? 'Initiation du paiement...' : 'En attente de confirmation...'}
+                      {paymentStatus === 'pending' && 'Initiation du paiement...'}
+                      {paymentStatus === 'checking' && 'En attente de confirmation...'}
+                      {paymentStatus === 'success' && 'Paiement réussi !'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Confirmez le paiement sur votre téléphone
+                      {paymentStatus === 'success' 
+                        ? 'Votre solde a été mis à jour' 
+                        : 'Confirmez le paiement sur votre téléphone'}
                     </p>
                   </div>
                 </CardContent>
