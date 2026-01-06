@@ -2,3 +2,6 @@ project_id = "inhzvcfoiovpotoxwwzf"
 
 [functions.exobooster]
 verify_jwt = false
+
+[functions.exobooster-prices]
+verify_jwt = false
