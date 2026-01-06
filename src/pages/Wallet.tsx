@@ -34,7 +34,7 @@ const quickAmounts = [500, 1000, 2500, 5000, 10000, 25000];
 
 export default function Wallet() {
   const { user, loading: authLoading } = useAuth();
-  const { balance, transactions, loading: walletLoading, recharge } = useWallet();
+  const { balance, transactions, loading: walletLoading, recharge, refreshBalance } = useWallet();
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -79,12 +79,20 @@ export default function Wallet() {
         const amount = paymentAmountRef.current;
         const methodName = paymentMethodRef.current;
         
-        await recharge(amount, methodName || 'Mobile Money');
-        
-        // Update UI to show success
-        setPaymentStatus('success');
-        
-        toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
+        try {
+          await recharge(amount, methodName || 'Mobile Money');
+          
+          // Refresh balance to ensure UI is updated
+          await refreshBalance();
+          
+          // Update UI to show success
+          setPaymentStatus('success');
+          
+          toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
+        } catch (rechargeError) {
+          console.error('Error recharging wallet:', rechargeError);
+          toast.error("Le paiement est réussi mais il y a eu un problème pour mettre à jour le solde. Contactez le support.");
+        }
         
         // Reset form after a short delay to show success state
         setTimeout(() => {
