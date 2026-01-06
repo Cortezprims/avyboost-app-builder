@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Timestamp } from "firebase/firestore";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Wallet as WalletIcon,
   Plus,
@@ -20,14 +21,13 @@ import {
   TrendingUp,
   ArrowLeft,
   Loader2,
+  Phone,
 } from "lucide-react";
 import { toast } from "sonner";
 
 const paymentMethods = [
-  { id: "orange", name: "Orange Money", icon: "🟠", color: "border-orange-500/50 bg-orange-500/5" },
   { id: "mtn", name: "MTN MoMo", icon: "🟡", color: "border-yellow-500/50 bg-yellow-500/5" },
-  { id: "visa", name: "Visa", icon: "💳", color: "border-blue-500/50 bg-blue-500/5" },
-  { id: "mastercard", name: "Mastercard", icon: "💳", color: "border-red-500/50 bg-red-500/5" },
+  { id: "orange", name: "Orange Money", icon: "🟠", color: "border-orange-500/50 bg-orange-500/5" },
 ];
 
 const quickAmounts = [500, 1000, 2500, 5000, 10000, 25000];
@@ -37,8 +37,68 @@ export default function Wallet() {
   const { balance, transactions, loading: walletLoading, recharge } = useWallet();
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [activeTab, setActiveTab] = useState("recharge");
   const [isRecharging, setIsRecharging] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking'>('idle');
+  const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current);
+      }
+    };
+  }, []);
+
+  const checkPaymentStatus = async (reference: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('campay-payment', {
+        body: { action: 'status', reference }
+      });
+
+      console.log('Payment status check:', data);
+
+      if (error) {
+        console.error('Status check error:', error);
+        return;
+      }
+
+      if (data?.data?.status === 'SUCCESSFUL') {
+        // Payment successful - credit the wallet
+        if (statusCheckInterval.current) {
+          clearInterval(statusCheckInterval.current);
+        }
+        
+        const amount = parseInt(rechargeAmount);
+        const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod;
+        
+        await recharge(amount, methodName || 'Mobile Money');
+        
+        setPaymentStatus('idle');
+        setPaymentReference(null);
+        setRechargeAmount("");
+        setSelectedMethod(null);
+        setPhoneNumber("");
+        setIsRecharging(false);
+        
+        toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
+      } else if (data?.data?.status === 'FAILED') {
+        if (statusCheckInterval.current) {
+          clearInterval(statusCheckInterval.current);
+        }
+        setPaymentStatus('idle');
+        setPaymentReference(null);
+        setIsRecharging(false);
+        toast.error("Le paiement a échoué. Veuillez réessayer.");
+      }
+      // If still PENDING, continue checking
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+    }
+  };
 
   const handleRecharge = async () => {
     const amount = parseInt(rechargeAmount);
@@ -50,17 +110,65 @@ export default function Wallet() {
       toast.error("Sélectionnez un mode de paiement");
       return;
     }
+    if (!phoneNumber || phoneNumber.length < 9) {
+      toast.error("Entrez un numéro de téléphone valide");
+      return;
+    }
 
     setIsRecharging(true);
+    setPaymentStatus('pending');
+
     try {
-      const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod;
-      await recharge(amount, methodName);
-      toast.success(`Recharge de ${amount.toLocaleString()} XAF effectuée !`);
-      setRechargeAmount("");
-      setSelectedMethod(null);
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la recharge");
-    } finally {
+      const { data, error } = await supabase.functions.invoke('campay-payment', {
+        body: {
+          action: 'collect',
+          phone: phoneNumber,
+          amount: amount,
+          description: `Recharge AVYboost - ${user?.email || 'User'}`,
+          external_reference: `avyboost_${user?.uid}_${Date.now()}`
+        }
+      });
+
+      console.log('Campay collect response:', data);
+
+      if (error) {
+        throw new Error(error.message || 'Erreur de paiement');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.data?.reference) {
+        setPaymentReference(data.data.reference);
+        setPaymentStatus('checking');
+        
+        toast.info("Confirmez le paiement sur votre téléphone", {
+          description: data.data.ussd_code ? `Composez ${data.data.ussd_code}` : undefined,
+          duration: 10000
+        });
+
+        // Start checking payment status every 5 seconds
+        statusCheckInterval.current = setInterval(() => {
+          checkPaymentStatus(data.data.reference);
+        }, 5000);
+
+        // Stop checking after 3 minutes
+        setTimeout(() => {
+          if (statusCheckInterval.current) {
+            clearInterval(statusCheckInterval.current);
+            if (paymentStatus === 'checking') {
+              setPaymentStatus('idle');
+              setIsRecharging(false);
+              toast.error("Délai expiré. Vérifiez votre historique.");
+            }
+          }
+        }, 180000);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors du paiement";
+      toast.error(errorMessage);
+      setPaymentStatus('idle');
       setIsRecharging(false);
     }
   };
@@ -231,11 +339,12 @@ export default function Wallet() {
                   <button
                     key={method.id}
                     onClick={() => setSelectedMethod(method.id)}
+                    disabled={isRecharging}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${method.color} ${
                       selectedMethod === method.id
                         ? "ring-2 ring-primary ring-offset-2"
                         : ""
-                    }`}
+                    } ${isRecharging ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     <span className="text-xl">{method.icon}</span>
                     <span className="text-sm font-medium">{method.name}</span>
@@ -244,19 +353,56 @@ export default function Wallet() {
               </div>
             </div>
 
+            {/* Phone Number */}
+            <div>
+              <p className="text-sm font-medium mb-3">Numéro de téléphone</p>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="tel"
+                  placeholder="6XXXXXXXX"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  className="pl-10"
+                  maxLength={9}
+                  disabled={isRecharging}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Numéro {selectedMethod === 'mtn' ? 'MTN' : selectedMethod === 'orange' ? 'Orange' : 'Mobile Money'}
+              </p>
+            </div>
+
+            {/* Payment Status */}
+            {paymentStatus !== 'idle' && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <div>
+                    <p className="font-medium text-sm">
+                      {paymentStatus === 'pending' ? 'Initiation du paiement...' : 'En attente de confirmation...'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Confirmez le paiement sur votre téléphone
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Confirm Button */}
             <Button
               size="lg"
               className="w-full gradient-primary glow"
               onClick={handleRecharge}
-              disabled={!rechargeAmount || !selectedMethod || isRecharging}
+              disabled={!rechargeAmount || !selectedMethod || !phoneNumber || phoneNumber.length < 9 || isRecharging}
             >
               {isRecharging ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               ) : (
                 <Plus className="w-5 h-5 mr-2" />
               )}
-              Recharger {rechargeAmount ? `${parseInt(rechargeAmount).toLocaleString()} XAF` : ""}
+              {isRecharging ? 'Paiement en cours...' : `Recharger ${rechargeAmount ? `${parseInt(rechargeAmount).toLocaleString()} XAF` : ""}`}
             </Button>
           </TabsContent>
 
