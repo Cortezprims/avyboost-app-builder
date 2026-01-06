@@ -61,14 +61,21 @@ export default function Wallet() {
         body: { action: 'status', reference }
       });
 
-      console.log('Payment status check:', data);
+      console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
 
       if (error) {
         console.error('Status check error:', error);
         return;
       }
 
-      if (data?.data?.status === 'SUCCESSFUL') {
+      // Campay peut retourner le statut de différentes façons
+      // data.data.status ou data.status - vérifier les deux
+      const statusData = data?.data || data;
+      const status = statusData?.status?.toUpperCase?.() || '';
+      
+      console.log('Extracted status:', status, 'from statusData:', statusData);
+
+      if (status === 'SUCCESSFUL' || status === 'SUCCESS') {
         // Payment successful - credit the wallet
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
@@ -79,11 +86,15 @@ export default function Wallet() {
         const amount = paymentAmountRef.current;
         const methodName = paymentMethodRef.current;
         
+        console.log('Payment successful! Recharging wallet with:', { amount, methodName });
+        
         try {
           await recharge(amount, methodName || 'Mobile Money');
+          console.log('Wallet recharged successfully');
           
           // Refresh balance to ensure UI is updated
           await refreshBalance();
+          console.log('Balance refreshed');
           
           // Update UI to show success
           setPaymentStatus('success');
@@ -104,7 +115,7 @@ export default function Wallet() {
           setIsRecharging(false);
         }, 2000);
         
-      } else if (data?.data?.status === 'FAILED') {
+      } else if (status === 'FAILED' || status === 'CANCELLED') {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
@@ -113,6 +124,8 @@ export default function Wallet() {
         setPaymentReference(null);
         setIsRecharging(false);
         toast.error("Le paiement a échoué. Veuillez réessayer.");
+      } else {
+        console.log('Payment still pending, status:', status);
       }
       // If still PENDING, continue checking
     } catch (error) {

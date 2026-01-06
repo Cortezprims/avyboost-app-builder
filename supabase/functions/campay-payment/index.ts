@@ -89,11 +89,33 @@ serve(async (req) => {
 
         console.log('Checking transaction status:', { reference });
 
+        // Campay status endpoint
         response = await fetch(`${CAMPAY_API_URL}/transaction/${reference}/`, {
           method: 'GET',
           headers,
         });
-        break;
+        
+        const statusText = await response.text();
+        console.log('Campay status raw response:', statusText);
+        
+        let statusData;
+        try {
+          statusData = JSON.parse(statusText);
+        } catch {
+          console.error('Failed to parse status response:', statusText);
+          return new Response(
+            JSON.stringify({ error: 'Invalid status response from payment service' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log('Campay status parsed:', JSON.stringify(statusData));
+        
+        // Return the status data directly
+        return new Response(
+          JSON.stringify({ success: true, data: statusData }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       case 'balance': {
