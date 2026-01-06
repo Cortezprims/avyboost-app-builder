@@ -14,7 +14,7 @@ import { useSyncedServices, useDynamicPrice } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { serviceTypes, qualityBadges } from "@/data/services";
 import { getExoBoosterServiceId, validateQuantity, getExoBoosterServiceInfo } from "@/data/exoboosterMapping";
-import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet, Info } from "lucide-react";
+import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet, Info, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 // Réactions disponibles par plateforme
@@ -77,7 +77,7 @@ export default function Services() {
   const navigate = useNavigate();
   const { platform: urlPlatform } = useParams();
   const { user } = useAuth();
-  const { balance } = useWallet();
+  const { balance, refreshBalance } = useWallet();
   const { createOrder } = useOrders();
   const { createOrder: createExoBoosterOrder, isLoading: exoLoading, error: exoError } = useExoBooster();
   
@@ -199,12 +199,25 @@ export default function Services() {
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <Link to="/wallet">
-                  <Badge variant="secondary" className="gap-1">
-                    <Wallet className="w-3 h-3" />
-                    {balance.toLocaleString()} XAF
-                  </Badge>
-                </Link>
+                <div className="flex items-center gap-1">
+                  <Link to="/wallet">
+                    <Badge variant="secondary" className="gap-1">
+                      <Wallet className="w-3 h-3" />
+                      {balance.toLocaleString()} XAF
+                    </Badge>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      refreshBalance();
+                      toast.success("Solde actualisé");
+                    }}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
               <ThemeToggle />
             </div>
