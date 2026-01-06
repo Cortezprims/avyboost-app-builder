@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,10 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useExoBooster } from "@/hooks/useExoBooster";
-import { useSyncedServices } from "@/hooks/useSyncedPrices";
+import { useSyncedServices, useDynamicPrice } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { serviceTypes, qualityBadges } from "@/data/services";
-import { getExoBoosterServiceId, validateQuantity } from "@/data/exoboosterMapping";
+import { getExoBoosterServiceId, validateQuantity, getExoBoosterServiceInfo } from "@/data/exoboosterMapping";
 import { ShoppingCart, Zap, Clock, Shield, Star, Timer, Sparkles, ArrowLeft, Loader2, Wallet, Info } from "lucide-react";
 import { toast } from "sonner";
 
@@ -83,13 +83,25 @@ export default function Services() {
   
   const [activePlatform, setActivePlatform] = useState<PlatformKey>((urlPlatform as PlatformKey) || "tiktok");
   const [selectedService, setSelectedService] = useState<number | null>(null);
-  const [selectedPrice, setSelectedPrice] = useState<{ qty: number; price: number } | null>(null);
+  const [customQuantity, setCustomQuantity] = useState<number | null>(null);
   const [accountUrl, setAccountUrl] = useState("");
   const [deliveryType, setDeliveryType] = useState<"standard" | "express">("standard");
   const [serviceFilter, setServiceFilter] = useState("all");
   const [isOrdering, setIsOrdering] = useState(false);
   const [comments, setComments] = useState("");
   const [selectedReaction, setSelectedReaction] = useState<string>("");
+
+  // Get ExoBooster service info for min/max limits
+  const serviceInfo = selectedService ? getExoBoosterServiceInfo(activePlatform, selectedService) : null;
+  
+  // Calculate dynamic price based on custom quantity
+  const dynamicPrice = useDynamicPrice(activePlatform, selectedService || 0, customQuantity || 0);
+  
+  // Computed selected price based on custom quantity
+  const selectedPrice = useMemo(() => {
+    if (!customQuantity || !dynamicPrice) return null;
+    return { qty: customQuantity, price: dynamicPrice };
+  }, [customQuantity, dynamicPrice]);
 
   const handleOrder = async () => {
     if (!user) {
@@ -212,7 +224,7 @@ export default function Services() {
                 onClick={() => {
                   setActivePlatform(platformId);
                   setSelectedService(null);
-                  setSelectedPrice(null);
+                  setCustomQuantity(null);
                 }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl whitespace-nowrap transition-all ${
                   activePlatform === platformId
@@ -244,80 +256,80 @@ export default function Services() {
 
         {/* Services Grid */}
         <div className="space-y-3">
-          {currentServices.map((service) => (
-            <Card
-              key={service.id}
-              className={`relative cursor-pointer transition-all ${
-                selectedService === service.id
-                  ? "border-primary ring-2 ring-primary/20"
-                  : "hover:border-primary/50"
-              }`}
-              onClick={() => {
-                setSelectedService(service.id);
-                setSelectedPrice(service.prices[0]);
-              }}
-            >
-              {service.popular && (
-                <Badge className="absolute -top-2 -right-2 gradient-primary text-[10px]">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Populaire
-                </Badge>
-              )}
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-10 h-10 rounded-xl ${currentPlatformConfig.color} flex items-center justify-center`}>
-                      <PlatformIcon className={currentPlatformConfig.textColor} size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{service.name}</h3>
-                      <div className="flex gap-1 mt-1">
-                        {service.badges?.map((badgeKey) => {
-                          const badge = qualityBadges[badgeKey as keyof typeof qualityBadges];
-                          return (
-                            <Badge key={badgeKey} variant="secondary" className={`${badge.color} text-[10px] px-2`}>
-                              <badge.icon className="w-3 h-3 mr-1" />
-                              {badge.label}
-                            </Badge>
-                          );
-                        })}
+          {currentServices.map((service) => {
+            const svcInfo = getExoBoosterServiceInfo(activePlatform, service.id);
+            return (
+              <Card
+                key={service.id}
+                className={`relative cursor-pointer transition-all ${
+                  selectedService === service.id
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "hover:border-primary/50"
+                }`}
+                onClick={() => {
+                  setSelectedService(service.id);
+                  // Set default quantity to minimum
+                  if (svcInfo) {
+                    setCustomQuantity(svcInfo.min);
+                  } else {
+                    setCustomQuantity(service.prices[0]?.qty || 100);
+                  }
+                }}
+              >
+                {service.popular && (
+                  <Badge className="absolute -top-2 -right-2 gradient-primary text-[10px]">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Populaire
+                  </Badge>
+                )}
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-10 h-10 rounded-xl ${currentPlatformConfig.color} flex items-center justify-center`}>
+                        <PlatformIcon className={currentPlatformConfig.textColor} size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{service.name}</h3>
+                        <div className="flex gap-1 mt-1">
+                          {service.badges?.map((badgeKey) => {
+                            const badge = qualityBadges[badgeKey as keyof typeof qualityBadges];
+                            return (
+                              <Badge key={badgeKey} variant="secondary" className={`${badge.color} text-[10px] px-2`}>
+                                <badge.icon className="w-3 h-3 mr-1" />
+                                {badge.label}
+                              </Badge>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Timer className="w-3 h-3" />
+                      {service.deliveryTime}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Timer className="w-3 h-3" />
-                    {service.deliveryTime}
-                  </div>
-                </div>
 
-                {/* Prices */}
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {service.prices.map((priceOption) => (
-                    <button
-                      key={priceOption.qty}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedService(service.id);
-                        setSelectedPrice(priceOption);
-                      }}
-                      className={`flex-shrink-0 px-3 py-2 rounded-lg border text-sm transition-all ${
-                        selectedService === service.id && selectedPrice?.qty === priceOption.qty
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <span className="block font-medium">{priceOption.qty.toLocaleString()}</span>
-                      <span className="text-primary font-bold">{priceOption.price.toLocaleString()} XAF</span>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Price info & min/max */}
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="text-muted-foreground">
+                      {svcInfo ? (
+                        <span>Min: {svcInfo.min.toLocaleString()} - Max: {svcInfo.max.toLocaleString()}</span>
+                      ) : (
+                        <span>À partir de {service.prices[0]?.price.toLocaleString()} XAF</span>
+                      )}
+                    </div>
+                    <div className="text-primary font-bold">
+                      {service.prices[0]?.price.toLocaleString()} XAF / {service.prices[0]?.qty.toLocaleString()}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Order Form */}
-        {selectedService && selectedPrice && selectedServiceData && (
+        {selectedService && selectedServiceData && (
           <Card className="border-primary sticky bottom-20 shadow-xl">
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center justify-between">
@@ -327,12 +339,41 @@ export default function Services() {
                   </div>
                   <div>
                     <p className="font-semibold">{selectedServiceData.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedPrice.qty.toLocaleString()} unités</p>
+                    <p className="text-sm text-muted-foreground">
+                      {customQuantity ? customQuantity.toLocaleString() : 0} unités
+                    </p>
                   </div>
                 </div>
                 <p className="text-xl font-bold text-primary">
                   {totalPrice.toLocaleString()} XAF
                 </p>
+              </div>
+
+              {/* Custom Quantity Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Nombre d'unités:</label>
+                <Input
+                  type="number"
+                  placeholder={`Ex: ${serviceInfo?.min || 100}`}
+                  value={customQuantity || ""}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    setCustomQuantity(val);
+                  }}
+                  min={serviceInfo?.min || 1}
+                  max={serviceInfo?.max || 1000000}
+                />
+                {serviceInfo && (
+                  <p className="text-xs text-muted-foreground">
+                    Min: {serviceInfo.min.toLocaleString()} - Max: {serviceInfo.max.toLocaleString()}
+                    {customQuantity && customQuantity < serviceInfo.min && (
+                      <span className="text-destructive ml-2">⚠️ Quantité insuffisante</span>
+                    )}
+                    {customQuantity && customQuantity > serviceInfo.max && (
+                      <span className="text-destructive ml-2">⚠️ Quantité trop élevée</span>
+                    )}
+                  </p>
+                )}
               </div>
 
               <Input
@@ -358,7 +399,7 @@ export default function Services() {
                     className="resize-none"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Min: {selectedPrice.qty} commentaires
+                    Min: {customQuantity || serviceInfo?.min || 1} commentaires
                   </p>
                 </div>
               )}
@@ -417,7 +458,7 @@ export default function Services() {
                 size="lg"
                 className="w-full gradient-primary glow"
                 onClick={handleOrder}
-                disabled={!accountUrl || isOrdering || (user && balance < totalPrice)}
+                disabled={!accountUrl || isOrdering || !customQuantity || !selectedPrice || (user && balance < totalPrice) || (serviceInfo && (customQuantity < serviceInfo.min || customQuantity > serviceInfo.max))}
               >
                 {isOrdering ? (
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
