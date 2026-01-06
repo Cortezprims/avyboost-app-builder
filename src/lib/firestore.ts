@@ -62,23 +62,25 @@ export const rechargeWallet = async (
     createdAt: serverTimestamp()
   });
 
-  // In a real app, you would integrate with payment provider here
-  // For now, we'll simulate success after a short delay
-  
   // Update transaction and user balance atomically
   await runTransaction(db, async (transaction) => {
     const userRef = doc(db, 'users', userId);
     const userDoc = await transaction.get(userRef);
     
+    // Create user document if it doesn't exist
     if (!userDoc.exists()) {
-      throw new Error('User not found');
+      transaction.set(userRef, {
+        balance: amount,
+        loyaltyPoints: 0,
+        loyaltyLevel: 'bronze',
+        createdAt: serverTimestamp()
+      });
+    } else {
+      const currentBalance = userDoc.data().balance || 0;
+      transaction.update(userRef, {
+        balance: currentBalance + amount
+      });
     }
-
-    const currentBalance = userDoc.data().balance || 0;
-    
-    transaction.update(userRef, {
-      balance: currentBalance + amount
-    });
     
     transaction.update(transactionRef, {
       status: 'completed'
@@ -281,14 +283,40 @@ export const subscribeToUserBalance = (
 ) => {
   const userRef = doc(db, 'users', userId);
   
-  return onSnapshot(userRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data();
+  return onSnapshot(userRef, (docSnapshot) => {
+    if (docSnapshot.exists()) {
+      const data = docSnapshot.data();
       callback(
         data.balance || 0, 
         data.loyaltyPoints || 0, 
         data.loyaltyLevel || 'bronze'
       );
+    } else {
+      // User document doesn't exist yet, return defaults
+      callback(0, 0, 'bronze');
     }
+  }, (error) => {
+    console.error('Error subscribing to balance:', error);
+    callback(0, 0, 'bronze');
   });
+};
+
+// Initialize user document if it doesn't exist
+export const ensureUserDocument = async (userId: string): Promise<void> => {
+  const userRef = doc(db, 'users', userId);
+  const userDoc = await getDoc(userRef);
+  
+  if (!userDoc.exists()) {
+    await runTransaction(db, async (transaction) => {
+      const checkDoc = await transaction.get(userRef);
+      if (!checkDoc.exists()) {
+        transaction.set(userRef, {
+          balance: 0,
+          loyaltyPoints: 0,
+          loyaltyLevel: 'bronze',
+          createdAt: serverTimestamp()
+        });
+      }
+    });
+  }
 };

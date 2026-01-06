@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { 
   Transaction, 
@@ -8,7 +8,8 @@ import {
   subscribeToUserBalance,
   rechargeWallet as rechargeWalletFn,
   createOrder as createOrderFn,
-  cancelOrder as cancelOrderFn
+  cancelOrder as cancelOrderFn,
+  ensureUserDocument
 } from '@/lib/firestore';
 
 export const useWallet = () => {
@@ -27,31 +28,57 @@ export const useWallet = () => {
       return;
     }
 
-    setLoading(true);
+    let unsubBalance: (() => void) | null = null;
+    let unsubTransactions: (() => void) | null = null;
 
-    // Subscribe to balance updates
-    const unsubBalance = subscribeToUserBalance(user.uid, (bal, points, level) => {
-      setBalance(bal);
-      setLoyaltyPoints(points);
-      setLoyaltyLevel(level);
-    });
+    const init = async () => {
+      setLoading(true);
+      
+      // Ensure user document exists first
+      try {
+        await ensureUserDocument(user.uid);
+      } catch (error) {
+        console.error('Error ensuring user document:', error);
+      }
 
-    // Subscribe to transactions
-    const unsubTransactions = subscribeToTransactions(user.uid, (txs) => {
-      setTransactions(txs);
-      setLoading(false);
-    });
+      // Subscribe to balance updates
+      unsubBalance = subscribeToUserBalance(user.uid, (bal, points, level) => {
+        setBalance(bal);
+        setLoyaltyPoints(points);
+        setLoyaltyLevel(level);
+        setLoading(false);
+      });
+
+      // Subscribe to transactions (with error handling for missing index)
+      try {
+        unsubTransactions = subscribeToTransactions(user.uid, (txs) => {
+          setTransactions(txs);
+        });
+      } catch (error) {
+        console.error('Error subscribing to transactions:', error);
+        setTransactions([]);
+      }
+    };
+
+    init();
 
     return () => {
-      unsubBalance();
-      unsubTransactions();
+      if (unsubBalance) unsubBalance();
+      if (unsubTransactions) unsubTransactions();
     };
   }, [user]);
 
-  const recharge = async (amount: number, method: string) => {
+  const recharge = useCallback(async (amount: number, method: string) => {
     if (!user) throw new Error('User not authenticated');
-    return rechargeWalletFn(user.uid, amount, method);
-  };
+    const result = await rechargeWalletFn(user.uid, amount, method);
+    return result;
+  }, [user]);
+
+  const refreshBalance = useCallback(async () => {
+    if (!user) return;
+    // Force re-subscribe to get fresh balance
+    await ensureUserDocument(user.uid);
+  }, [user]);
 
   return {
     balance,
@@ -59,7 +86,8 @@ export const useWallet = () => {
     loyaltyLevel,
     transactions,
     loading,
-    recharge
+    recharge,
+    refreshBalance
   };
 };
 
