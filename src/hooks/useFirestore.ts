@@ -95,6 +95,7 @@ export const useOrders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -104,13 +105,21 @@ export const useOrders = () => {
     }
 
     setLoading(true);
+    setError(null);
 
-    const unsubscribe = subscribeToOrders(user.uid, (ordersData) => {
-      setOrders(ordersData);
+    try {
+      const unsubscribe = subscribeToOrders(user.uid, (ordersData) => {
+        setOrders(ordersData);
+        setLoading(false);
+        setError(null);
+      });
+
+      return () => unsubscribe();
+    } catch (err: any) {
+      console.error('Error subscribing to orders:', err);
+      setError(err.message);
       setLoading(false);
-    });
-
-    return () => unsubscribe();
+    }
   }, [user]);
 
   const createOrder = async (orderData: Omit<Order, 'id' | 'userId' | 'delivered' | 'status' | 'createdAt' | 'updatedAt'>) => {
