@@ -57,10 +57,16 @@ export function useSyncedService(platform: string, serviceId: number): Service |
  */
 export function useDynamicPrice(platform: string, serviceId: number, quantity: number): number | null {
   return useMemo(() => {
-    const platformMapping = exoboosterMapping[platform];
-    const exoInfo = platformMapping?.[serviceId];
+    // Guard against invalid inputs to prevent crashes
+    if (!platform || !serviceId || serviceId <= 0 || quantity <= 0) {
+      return null;
+    }
     
-    if (!exoInfo) return null;
+    const platformMapping = exoboosterMapping[platform];
+    if (!platformMapping) return null;
+    
+    const exoInfo = platformMapping[serviceId];
+    if (!exoInfo || typeof exoInfo.rate !== 'number') return null;
     
     return calculateAvyPrice(exoInfo.rate, quantity);
   }, [platform, serviceId, quantity]);
