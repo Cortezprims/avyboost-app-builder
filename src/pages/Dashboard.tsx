@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PromotionsCarousel } from "@/components/home/PromotionsCarousel";
 import { PopularServices } from "@/components/home/PopularServices";
+import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
 import {
@@ -127,6 +128,9 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Admin: ExoBooster Balance */}
+        <ExoBoosterBalance userEmail={user.email || undefined} />
 
         <PromotionsCarousel />
 
