@@ -136,10 +136,10 @@ export const subscribeToTransactions = (
   userId: string,
   callback: (transactions: Transaction[]) => void
 ) => {
+  // Query without orderBy to avoid requiring composite index
   const q = query(
     collection(db, 'transactions'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -147,7 +147,16 @@ export const subscribeToTransactions = (
     snapshot.forEach((doc) => {
       transactions.push({ id: doc.id, ...doc.data() } as Transaction);
     });
+    // Sort client-side by createdAt descending
+    transactions.sort((a, b) => {
+      const dateA = a.createdAt?.toMillis?.() || 0;
+      const dateB = b.createdAt?.toMillis?.() || 0;
+      return dateB - dateA;
+    });
     callback(transactions);
+  }, (error) => {
+    console.error('Error in transactions subscription:', error);
+    callback([]);
   });
 };
 
@@ -261,16 +270,22 @@ export const subscribeToOrders = (
   userId: string,
   callback: (orders: Order[]) => void
 ) => {
+  // Query without orderBy to avoid requiring composite index
   const q = query(
     collection(db, 'orders'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   );
 
   return onSnapshot(q, (snapshot) => {
     const orders: Order[] = [];
     snapshot.forEach((doc) => {
       orders.push({ id: doc.id, ...doc.data() } as Order);
+    });
+    // Sort client-side by createdAt descending
+    orders.sort((a, b) => {
+      const dateA = a.createdAt?.toMillis?.() || 0;
+      const dateB = b.createdAt?.toMillis?.() || 0;
+      return dateB - dateA;
     });
     callback(orders);
   }, (error) => {
