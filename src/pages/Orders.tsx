@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrderSync } from "@/hooks/useOrderSync";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { Timestamp } from "firebase/firestore";
 import {
@@ -38,8 +39,22 @@ const statusConfig: Record<OrderStatus, { label: string; icon: typeof CheckCircl
 export default function Orders() {
   const { user, loading: authLoading } = useAuth();
   const { orders, loading, stats, cancelOrder } = useOrders();
+  const { syncOrders } = useOrderSync(user?.uid, orders);
   const [activeTab, setActiveTab] = useState("active");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncOrders = async () => {
+    setIsSyncing(true);
+    try {
+      await syncOrders();
+      toast.success("Statuts mis à jour");
+    } catch (error) {
+      toast.error("Erreur lors de la synchronisation");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleCancelOrder = async (orderId: string) => {
     setCancellingId(orderId);
@@ -110,7 +125,17 @@ export default function Orders() {
               </Link>
               <h1 className="font-display font-bold text-lg">Commandes</h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleSyncOrders}
+                disabled={isSyncing}
+              >
+                <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
