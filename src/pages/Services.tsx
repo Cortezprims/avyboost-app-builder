@@ -139,14 +139,23 @@ export default function Services() {
       }
 
       // Call ExoBooster API to create the order with the correct service ID
+      let orderError: string | null = null;
       const exoResponse = await createExoBoosterOrder(
         exoServiceId.toString(),
         accountUrl,
         selectedPrice.qty
-      );
+      ).catch((err) => {
+        orderError = err?.message || "Erreur lors de la commande";
+        return null;
+      });
 
       if (!exoResponse) {
-        throw new Error(exoError || "Erreur lors de la commande ExoBooster");
+        // Check for specific error messages
+        const errorMsg = orderError || exoError || "Erreur lors de la commande ExoBooster";
+        if (errorMsg.toLowerCase().includes("not enough funds") || errorMsg.toLowerCase().includes("balance")) {
+          throw new Error("Solde ExoBooster insuffisant. Veuillez contacter le support.");
+        }
+        throw new Error(errorMsg);
       }
 
       // Save order to Firestore with ExoBooster order ID
