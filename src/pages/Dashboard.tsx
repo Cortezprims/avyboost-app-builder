@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PromotionsCarousel } from "@/components/home/PromotionsCarousel";
 import { PopularServices } from "@/components/home/PopularServices";
 import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
+import { AdminOrdersPanel } from "@/components/admin/AdminOrdersPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
 import {
@@ -22,19 +23,11 @@ import {
   Loader2,
 } from "lucide-react";
 
-const tierConfig: Record<string, { name: string; color: string }> = {
-  bronze: { name: "Bronze", color: "bg-bronze" },
-  silver: { name: "Argent", color: "bg-silver" },
-  gold: { name: "Or", color: "bg-gold" },
-  platinum: { name: "Platine", color: "bg-platinum" },
-};
-
 export default function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
-  const { balance, loyaltyLevel } = useWallet();
+  const { balance } = useWallet();
   const { orders, stats } = useOrders();
 
-  const currentTier = tierConfig[loyaltyLevel] || tierConfig.bronze;
   const recentOrders = orders.slice(0, 2);
 
   if (authLoading) {
@@ -95,13 +88,10 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Welcome & Balance */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-bold">Salut, {userName.split(' ')[0]} 👋</h1>
-            <p className="text-sm text-muted-foreground">Prêt à booster vos réseaux ?</p>
-          </div>
-          <Badge className={`${currentTier.color} text-white`}>{currentTier.name}</Badge>
+        {/* Welcome */}
+        <div>
+          <h1 className="text-xl font-bold">Salut, {userName.split(' ')[0]} 👋</h1>
+          <p className="text-sm text-muted-foreground">Prêt à booster vos réseaux ?</p>
         </div>
 
         {/* Balance Card */}
@@ -131,6 +121,9 @@ export default function Dashboard() {
 
         {/* Admin: ExoBooster Balance */}
         <ExoBoosterBalance userEmail={user.email || undefined} />
+
+        {/* Admin: All Orders Panel */}
+        <AdminOrdersPanel userEmail={user.email || undefined} />
 
         <PromotionsCarousel />
 

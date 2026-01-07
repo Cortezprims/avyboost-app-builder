@@ -273,6 +273,10 @@ export const subscribeToOrders = (
       orders.push({ id: doc.id, ...doc.data() } as Order);
     });
     callback(orders);
+  }, (error) => {
+    console.error('Error in orders subscription:', error);
+    // Return empty array on error instead of crashing
+    callback([]);
   });
 };
 

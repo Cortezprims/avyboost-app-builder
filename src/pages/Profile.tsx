@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 import {
-  Crown,
   Copy,
   Users,
-  Gift,
   Bell,
   Mail,
   MessageSquare,
@@ -21,28 +19,9 @@ import {
   LogOut,
   ChevronRight,
   Settings,
-  Zap,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-
-const user = {
-  name: "Jean Dupont",
-  email: "jean.dupont@email.com",
-  phone: "+237 620462308",
-  tier: "gold" as const,
-  points: 2450,
-  nextTierPoints: 5000,
-  referralCode: "JEAN2024",
-  referralEarnings: 125.50,
-  referralCount: 8,
-};
-
-const tierConfig = {
-  bronze: { name: "Bronze", color: "bg-bronze", minPoints: 0, discount: 0 },
-  silver: { name: "Argent", color: "bg-silver", minPoints: 1000, discount: 5 },
-  gold: { name: "Or", color: "bg-gold", minPoints: 2500, discount: 10 },
-  platinum: { name: "Platine", color: "bg-platinum", minPoints: 5000, discount: 15 },
-};
 
 const settingsItems = [
   { icon: Bell, label: "Notifications push", hasToggle: true, enabled: true },
@@ -53,19 +32,55 @@ const settingsItems = [
 ];
 
 export default function Profile() {
+  const { user, profile, logout, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState({
     push: true,
     email: true,
     sms: false,
   });
 
-  const currentTier = tierConfig[user.tier];
-  const tierProgress = (user.points / user.nextTierPoints) * 100;
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      toast.success("Déconnexion réussie");
+      navigate("/auth");
+    } catch (error: any) {
+      toast.error("Erreur lors de la déconnexion");
+      console.error('Logout error:', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const copyReferralCode = () => {
-    navigator.clipboard.writeText(`https://avyboost.com/ref/${user.referralCode}`);
+    const code = profile?.referralCode || "AVYBOOST";
+    navigator.clipboard.writeText(`https://avyboost.com/ref/${code}`);
     toast.success("Lien de parrainage copié !");
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <p className="text-lg font-medium mb-2">Connexion requise</p>
+        <Button asChild className="gradient-primary">
+          <Link to="/auth">Se connecter</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const userName = profile?.displayName || user.email?.split('@')[0] || 'Utilisateur';
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -91,30 +106,15 @@ export default function Profile() {
             <div className="flex items-center gap-4">
               <Avatar className="w-16 h-16 border-2 border-white/30">
                 <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
-                  {user.name.split(" ").map((n) => n[0]).join("")}
+                  {userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h2 className="text-xl font-bold">{user.name}</h2>
+                <h2 className="text-xl font-bold">{userName}</h2>
                 <p className="text-white/80 text-sm">{user.email}</p>
-                <Badge className={`${currentTier.color} text-white mt-2`}>
-                  <Crown className="w-3 h-3 mr-1" />
-                  {currentTier.name}
-                </Badge>
               </div>
             </div>
           </div>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-muted-foreground">Programme fidélité</span>
-              <span className="font-medium">{user.points.toLocaleString()} / {user.nextTierPoints.toLocaleString()} pts</span>
-            </div>
-            <Progress value={tierProgress} className="h-2" />
-            <div className="flex items-center gap-2 mt-3 p-3 rounded-xl bg-primary/5">
-              <Gift className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium">-{currentTier.discount}% sur toutes vos commandes</span>
-            </div>
-          </CardContent>
         </Card>
 
         {/* Referral Card */}
@@ -127,19 +127,9 @@ export default function Profile() {
             <CardDescription>Gagnez 10% sur les commandes de vos filleuls</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-muted/50 text-center">
-                <p className="text-2xl font-bold text-primary">{user.referralCount}</p>
-                <p className="text-xs text-muted-foreground">Filleuls</p>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/50 text-center">
-                <p className="text-2xl font-bold text-green-500">{user.referralEarnings.toFixed(0)} XAF</p>
-                <p className="text-xs text-muted-foreground">Gains</p>
-              </div>
-            </div>
             <div className="flex gap-2">
               <div className="flex-1 px-3 py-2 rounded-lg bg-muted text-sm font-mono truncate">
-                avyboost.com/ref/{user.referralCode}
+                avyboost.com/ref/{profile?.referralCode || "AVYBOOST"}
               </div>
               <Button size="icon" variant="outline" onClick={copyReferralCode}>
                 <Copy className="w-4 h-4" />
@@ -183,11 +173,18 @@ export default function Profile() {
         </Card>
 
         {/* Logout */}
-        <Button variant="outline" className="w-full text-destructive hover:text-destructive" asChild>
-          <Link to="/auth">
+        <Button 
+          variant="outline" 
+          className="w-full text-destructive hover:text-destructive" 
+          onClick={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
             <LogOut className="w-4 h-4 mr-2" />
-            Déconnexion
-          </Link>
+          )}
+          Déconnexion
         </Button>
       </main>
 
