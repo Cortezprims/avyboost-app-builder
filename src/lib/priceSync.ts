@@ -22,9 +22,15 @@ export interface CalculatedPrice {
  * Calcule le prix AVYboost en XAF à partir du taux ExoBooster
  * @param exoRateUSD - Taux ExoBooster en USD pour 1000 unités
  * @param quantity - Quantité souhaitée
- * @returns Prix en XAF arrondi avec marge de 25%
+ * @returns Prix en XAF arrondi avec marge de 25%, ou 0 si invalide
  */
 export function calculateAvyPrice(exoRateUSD: number, quantity: number): number {
+  // Guard against invalid inputs to prevent NaN/crashes
+  if (!exoRateUSD || !quantity || typeof exoRateUSD !== 'number' || typeof quantity !== 'number' || 
+      isNaN(exoRateUSD) || isNaN(quantity) || exoRateUSD <= 0 || quantity <= 0) {
+    return 0;
+  }
+  
   // Prix ExoBooster en XAF pour la quantité demandée
   // rate est en USD/1000, donc on calcule: (rate * quantity / 1000) * USD_TO_XAF
   const exoPriceXAF = (exoRateUSD * quantity / 1000) * USD_TO_XAF_RATE;
@@ -33,7 +39,10 @@ export function calculateAvyPrice(exoRateUSD: number, quantity: number): number 
   const avyPrice = exoPriceXAF * (1 + MARGIN_PERCENTAGE);
   
   // Arrondi au multiple de 5 le plus proche pour des prix propres
-  return Math.ceil(avyPrice / 5) * 5;
+  const result = Math.ceil(avyPrice / 5) * 5;
+  
+  // Final safety check
+  return isNaN(result) ? 0 : result;
 }
 
 /**
