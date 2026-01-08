@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useExoBooster } from "@/hooks/useExoBooster";
+import { supabase } from "@/integrations/supabase/client";
 import { useSyncedServices, useDynamicPrice } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { serviceTypes, qualityBadges } from "@/data/services";
@@ -79,7 +80,7 @@ export default function Services() {
   const { user } = useAuth();
   const { balance, refreshBalance } = useWallet();
   const { createOrder } = useOrders();
-  const { createOrder: createExoBoosterOrder, isLoading: exoLoading, error: exoError } = useExoBooster();
+  const { createOrder: createExoBoosterOrder, getBalance: getExoBoosterBalance, isLoading: exoLoading, error: exoError } = useExoBooster();
   
   const [activePlatform, setActivePlatform] = useState<PlatformKey>((urlPlatform as PlatformKey) || "tiktok");
   const [selectedService, setSelectedService] = useState<number | null>(null);
@@ -153,7 +154,24 @@ export default function Services() {
         // Check for specific error messages
         const errorMsg = orderError || exoError || "Erreur lors de la commande ExoBooster";
         if (errorMsg.toLowerCase().includes("not enough funds") || errorMsg.toLowerCase().includes("balance")) {
-          throw new Error("Solde ExoBooster insuffisant. Veuillez contacter le support.");
+          // Send alert email to admin
+          try {
+            const balanceResult = await getExoBoosterBalance();
+            await supabase.functions.invoke('alert-low-balance', {
+              body: {
+                customerEmail: user.email || "Inconnu",
+                serviceName: `${selectedServiceData?.name} ${currentPlatformConfig.name}`,
+                quantity: selectedPrice.qty,
+                amount: totalPrice,
+                exoBoosterBalance: balanceResult?.balance || "0",
+                targetUrl: accountUrl,
+              },
+            });
+            console.log("Alert email sent to admin");
+          } catch (alertError) {
+            console.error("Failed to send alert email:", alertError);
+          }
+          throw new Error("Solde ExoBooster insuffisant. L'administrateur a été notifié. Veuillez réessayer plus tard.");
         }
         throw new Error(errorMsg);
       }
