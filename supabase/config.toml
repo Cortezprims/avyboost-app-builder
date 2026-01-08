@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.campay-payment]
 verify_jwt = false
+
+[functions.alert-low-balance]
+verify_jwt = false
