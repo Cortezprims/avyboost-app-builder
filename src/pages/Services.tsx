@@ -82,7 +82,8 @@ export default function Services() {
   const { createOrder } = useOrders();
   const { createOrder: createExoBoosterOrder, getBalance: getExoBoosterBalance, isLoading: exoLoading, error: exoError } = useExoBooster();
   
-  const [activePlatform, setActivePlatform] = useState<PlatformKey>((urlPlatform as PlatformKey) || "tiktok");
+  const validPlatform = urlPlatform && urlPlatform in platformConfig ? (urlPlatform as PlatformKey) : "tiktok";
+  const [activePlatform, setActivePlatform] = useState<PlatformKey>(validPlatform);
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [customQuantity, setCustomQuantity] = useState<number | null>(null);
   const [accountUrl, setAccountUrl] = useState("");
