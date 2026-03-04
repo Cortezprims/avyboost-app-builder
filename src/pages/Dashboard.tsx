@@ -21,6 +21,7 @@ import {
   Bell,
   Plus,
   Loader2,
+  Shield,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -124,6 +125,20 @@ export default function Dashboard() {
 
         {/* Admin: All Orders Panel */}
         <AdminOrdersPanel userEmail={user.email || undefined} />
+
+        {/* Admin Access Button */}
+        {user.email === "avydigitalbusiness@gmail.com" && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-4">
+              <Button asChild className="w-full gradient-primary glow">
+                <Link to="/admin/code">
+                  <Shield className="w-5 h-5 mr-2" />
+                  Espace Administrateur
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <PromotionsCarousel />
 
