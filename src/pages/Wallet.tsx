@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Loader2,
   Phone,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -42,7 +43,10 @@ export default function Wallet() {
   const [isRecharging, setIsRecharging] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking' | 'success'>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [paymentProgress, setPaymentProgress] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
   const paymentAmountRef = useRef<number>(0);
   const paymentMethodRef = useRef<string>('');
 
@@ -52,8 +56,48 @@ export default function Wallet() {
       if (statusCheckInterval.current) {
         clearInterval(statusCheckInterval.current);
       }
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
     };
   }, []);
+
+  // Animate progress bar during payment
+  const startProgressAnimation = () => {
+    setPaymentProgress(0);
+    let progress = 0;
+    progressInterval.current = setInterval(() => {
+      progress += Math.random() * 3 + 0.5;
+      if (progress >= 90) {
+        progress = 90; // Cap at 90 until real confirmation
+        if (progressInterval.current) clearInterval(progressInterval.current);
+      }
+      setPaymentProgress(progress);
+    }, 500);
+  };
+
+  const completeProgress = () => {
+    if (progressInterval.current) clearInterval(progressInterval.current);
+    setPaymentProgress(100);
+  };
+
+  const resetProgress = () => {
+    if (progressInterval.current) clearInterval(progressInterval.current);
+    setPaymentProgress(0);
+  };
+
+  // Refresh balance handler
+  const handleRefreshBalance = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshBalance();
+      toast.success("Solde actualisé");
+    } catch {
+      toast.error("Erreur lors de l'actualisation");
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
 
   const checkPaymentStatus = async (reference: string) => {
     try {
@@ -96,6 +140,9 @@ export default function Wallet() {
           await refreshBalance();
           console.log('Balance refreshed');
           
+          // Complete the progress bar
+          completeProgress();
+          
           // Update UI to show success
           setPaymentStatus('success');
           
@@ -113,6 +160,7 @@ export default function Wallet() {
           setSelectedMethod(null);
           setPhoneNumber("");
           setIsRecharging(false);
+          resetProgress();
         }, 2000);
         
       } else if (status === 'FAILED' || status === 'CANCELLED') {
@@ -123,6 +171,7 @@ export default function Wallet() {
         setPaymentStatus('idle');
         setPaymentReference(null);
         setIsRecharging(false);
+        resetProgress();
         toast.error("Le paiement a échoué. Veuillez réessayer.");
       } else {
         console.log('Payment still pending, status:', status);
@@ -150,7 +199,7 @@ export default function Wallet() {
 
     setIsRecharging(true);
     setPaymentStatus('pending');
-    
+    startProgressAnimation();
     // Store values in refs to avoid stale closures
     paymentAmountRef.current = amount;
     const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod || '';
@@ -199,6 +248,7 @@ export default function Wallet() {
             statusCheckInterval.current = null;
             setPaymentStatus('idle');
             setIsRecharging(false);
+            resetProgress();
             toast.error("Délai expiré. Vérifiez votre historique.");
           }
         }, 180000);
@@ -211,6 +261,7 @@ export default function Wallet() {
       toast.error(errorMessage);
       setPaymentStatus('idle');
       setIsRecharging(false);
+      resetProgress();
     }
   };
 
@@ -288,7 +339,18 @@ export default function Wallet() {
                 <WalletIcon className="w-5 h-5" />
                 <span className="text-sm text-white/80">Solde disponible</span>
               </div>
-              <Badge className="bg-white/20 text-white">XAF</Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                  onClick={handleRefreshBalance}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Badge className="bg-white/20 text-white">XAF</Badge>
+              </div>
             </div>
             {walletLoading ? (
               <Loader2 className="w-8 h-8 animate-spin" />
@@ -414,32 +476,44 @@ export default function Wallet() {
               </p>
             </div>
 
-            {/* Payment Status */}
+            {/* Payment Status with Progress Bar */}
             {paymentStatus !== 'idle' && (
               <Card className={`border ${
                 paymentStatus === 'success' 
                   ? 'bg-green-500/10 border-green-500/30' 
                   : 'bg-primary/5 border-primary/20'
               }`}>
-                <CardContent className="p-4 flex items-center gap-3">
-                  {paymentStatus === 'success' ? (
-                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                      <span className="text-white text-xs">✓</span>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    {paymentStatus === 'success' ? (
+                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                    ) : (
+                      <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">
+                        {paymentStatus === 'pending' && 'Initiation du paiement...'}
+                        {paymentStatus === 'checking' && 'En attente de confirmation...'}
+                        {paymentStatus === 'success' && 'Paiement réussi !'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {paymentStatus === 'success' 
+                          ? 'Votre solde a été mis à jour' 
+                          : 'Confirmez le paiement sur votre téléphone'}
+                      </p>
                     </div>
-                  ) : (
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  )}
-                  <div>
-                    <p className="font-medium text-sm">
-                      {paymentStatus === 'pending' && 'Initiation du paiement...'}
-                      {paymentStatus === 'checking' && 'En attente de confirmation...'}
-                      {paymentStatus === 'success' && 'Paiement réussi !'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {paymentStatus === 'success' 
-                        ? 'Votre solde a été mis à jour' 
-                        : 'Confirmez le paiement sur votre téléphone'}
-                    </p>
+                    <span className="text-xs font-semibold text-primary">{Math.round(paymentProgress)}%</span>
+                  </div>
+                  {/* Progress Bar */}
+                  <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ease-out ${
+                        paymentStatus === 'success' ? 'bg-green-500' : 'bg-primary'
+                      }`}
+                      style={{ width: `${paymentProgress}%` }}
+                    />
                   </div>
                 </CardContent>
               </Card>

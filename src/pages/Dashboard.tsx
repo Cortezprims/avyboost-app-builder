@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,12 +23,20 @@ import {
   Plus,
   Loader2,
   Shield,
+  RefreshCw,
 } from "lucide-react";
 
 export default function Dashboard() {
   const { user, profile, loading: authLoading } = useAuth();
-  const { balance } = useWallet();
+  const { balance, refreshBalance } = useWallet();
   const { orders, stats } = useOrders();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try { await refreshBalance(); } catch {}
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
 
   const recentOrders = orders.slice(0, 2);
 
@@ -109,12 +118,23 @@ export default function Dashboard() {
                     {balance.toLocaleString()} <span className="text-lg">XAF</span>
                   </p>
                 </div>
-                <Link to="/wallet">
-                  <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Recharger
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </Button>
-                </Link>
+                  <Link to="/wallet">
+                    <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Recharger
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </CardContent>
