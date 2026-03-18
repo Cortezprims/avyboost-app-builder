@@ -47,8 +47,8 @@ export default function Wallet() {
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [paymentProgress, setPaymentProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const paymentAmountRef = useRef<number>(0);
   const paymentMethodRef = useRef<string>('');
 
