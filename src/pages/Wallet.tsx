@@ -11,6 +11,8 @@ import { useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Timestamp } from "firebase/firestore";
 import { supabase } from "@/integrations/supabase/client";
+import mtnLogo from "@/assets/mtn-momo-logo.png";
+import orangeLogo from "@/assets/orange-money-logo.png";
 import {
   Wallet as WalletIcon,
   Plus,
@@ -27,8 +29,8 @@ import {
 import { toast } from "sonner";
 
 const paymentMethods = [
-  { id: "mtn", name: "MTN MoMo", icon: "🟡", color: "border-yellow-500/50 bg-yellow-500/5" },
-  { id: "orange", name: "Orange Money", icon: "🟠", color: "border-orange-500/50 bg-orange-500/5" },
+  { id: "mtn", name: "MTN MoMo", logo: mtnLogo, color: "border-yellow-500/50 bg-yellow-500/5" },
+  { id: "orange", name: "Orange Money", logo: orangeLogo, color: "border-orange-500/50 bg-orange-500/5" },
 ];
 
 const quickAmounts = [500, 1000, 2500, 5000, 10000, 25000];
