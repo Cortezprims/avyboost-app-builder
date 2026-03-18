@@ -123,7 +123,14 @@ export default function Wallet() {
       console.log('Extracted status:', status, 'from statusData:', statusData);
 
       if (status === 'SUCCESSFUL' || status === 'SUCCESS') {
-        // Payment successful - credit the wallet
+        // Prevent duplicate processing
+        if (isProcessingPayment.current) {
+          console.log('Payment already being processed, skipping duplicate');
+          return;
+        }
+        isProcessingPayment.current = true;
+
+        // Stop polling immediately
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
