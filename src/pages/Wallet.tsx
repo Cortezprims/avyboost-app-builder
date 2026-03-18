@@ -451,7 +451,7 @@ export default function Wallet() {
                         : ""
                     } ${isRecharging ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
-                    <span className="text-xl">{method.icon}</span>
+                    <img src={method.logo} alt={method.name} className="w-8 h-8 object-contain rounded" />
                     <span className="text-sm font-medium">{method.name}</span>
                   </button>
                 ))}
