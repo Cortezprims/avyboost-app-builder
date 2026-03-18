@@ -51,6 +51,7 @@ export default function Wallet() {
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const paymentAmountRef = useRef<number>(0);
   const paymentMethodRef = useRef<string>('');
+  const isProcessingPayment = useRef(false);
 
   // Cleanup interval on unmount
   useEffect(() => {
