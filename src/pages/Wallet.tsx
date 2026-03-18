@@ -11,6 +11,8 @@ import { useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Timestamp } from "firebase/firestore";
 import { supabase } from "@/integrations/supabase/client";
+import mtnLogo from "@/assets/mtn-momo-logo.png";
+import orangeLogo from "@/assets/orange-money-logo.png";
 import {
   Wallet as WalletIcon,
   Plus,
@@ -27,8 +29,8 @@ import {
 import { toast } from "sonner";
 
 const paymentMethods = [
-  { id: "mtn", name: "MTN MoMo", icon: "🟡", color: "border-yellow-500/50 bg-yellow-500/5" },
-  { id: "orange", name: "Orange Money", icon: "🟠", color: "border-orange-500/50 bg-orange-500/5" },
+  { id: "mtn", name: "MTN MoMo", logo: mtnLogo, color: "border-yellow-500/50 bg-yellow-500/5" },
+  { id: "orange", name: "Orange Money", logo: orangeLogo, color: "border-orange-500/50 bg-orange-500/5" },
 ];
 
 const quickAmounts = [500, 1000, 2500, 5000, 10000, 25000];
@@ -45,8 +47,8 @@ export default function Wallet() {
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [paymentProgress, setPaymentProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const statusCheckInterval = useRef<NodeJS.Timeout | null>(null);
-  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const paymentAmountRef = useRef<number>(0);
   const paymentMethodRef = useRef<string>('');
 
@@ -449,7 +451,7 @@ export default function Wallet() {
                         : ""
                     } ${isRecharging ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
-                    <span className="text-xl">{method.icon}</span>
+                    <img src={method.logo} alt={method.name} className="w-8 h-8 object-contain rounded" />
                     <span className="text-sm font-medium">{method.name}</span>
                   </button>
                 ))}

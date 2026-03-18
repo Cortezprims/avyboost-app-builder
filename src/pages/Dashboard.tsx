@@ -11,6 +11,9 @@ import { PromotionsCarousel } from "@/components/home/PromotionsCarousel";
 import { PopularServices } from "@/components/home/PopularServices";
 import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
 import { AdminOrdersPanel } from "@/components/admin/AdminOrdersPanel";
+import { AdminTransactionsPanel } from "@/components/admin/AdminTransactionsPanel";
+import { AdminNotifications } from "@/components/admin/AdminNotifications";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
 import {
@@ -19,7 +22,6 @@ import {
   ShoppingCart,
   Clock,
   CheckCircle2,
-  Bell,
   Plus,
   Loader2,
   Shield,
@@ -81,10 +83,7 @@ export default function Dashboard() {
             </Link>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-destructive rounded-full border-2 border-background" />
-              </Button>
+              <NotificationBell />
               <Link to="/profile">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
@@ -143,8 +142,13 @@ export default function Dashboard() {
         {/* Admin: ExoBooster Balance */}
         <ExoBoosterBalance userEmail={user.email || undefined} />
 
-        {/* Admin: All Orders Panel */}
         <AdminOrdersPanel userEmail={user.email || undefined} />
+
+        {/* Admin: All Transactions Panel */}
+        <AdminTransactionsPanel userEmail={user.email || undefined} />
+
+        {/* Admin: Send Notifications */}
+        <AdminNotifications userEmail={user.email || undefined} />
 
         {/* Admin Access Button */}
         {user.email === "avydigitalbusiness@gmail.com" && (
