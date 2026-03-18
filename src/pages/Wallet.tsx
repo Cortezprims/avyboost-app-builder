@@ -51,6 +51,7 @@ export default function Wallet() {
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const paymentAmountRef = useRef<number>(0);
   const paymentMethodRef = useRef<string>('');
+  const isProcessingPayment = useRef(false);
 
   // Cleanup interval on unmount
   useEffect(() => {
@@ -122,7 +123,14 @@ export default function Wallet() {
       console.log('Extracted status:', status, 'from statusData:', statusData);
 
       if (status === 'SUCCESSFUL' || status === 'SUCCESS') {
-        // Payment successful - credit the wallet
+        // Prevent duplicate processing
+        if (isProcessingPayment.current) {
+          console.log('Payment already being processed, skipping duplicate');
+          return;
+        }
+        isProcessingPayment.current = true;
+
+        // Stop polling immediately
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
@@ -163,6 +171,7 @@ export default function Wallet() {
           setPhoneNumber("");
           setIsRecharging(false);
           resetProgress();
+          isProcessingPayment.current = false;
         }, 2000);
         
       } else if (status === 'FAILED' || status === 'CANCELLED') {
@@ -174,6 +183,7 @@ export default function Wallet() {
         setPaymentReference(null);
         setIsRecharging(false);
         resetProgress();
+        isProcessingPayment.current = false;
         toast.error("Le paiement a échoué. Veuillez réessayer.");
       } else {
         console.log('Payment still pending, status:', status);
@@ -202,6 +212,7 @@ export default function Wallet() {
     setIsRecharging(true);
     setPaymentStatus('pending');
     startProgressAnimation();
+    isProcessingPayment.current = false;
     // Store values in refs to avoid stale closures
     paymentAmountRef.current = amount;
     const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod || '';
