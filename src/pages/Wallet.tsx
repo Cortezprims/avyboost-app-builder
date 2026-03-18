@@ -212,6 +212,7 @@ export default function Wallet() {
     setIsRecharging(true);
     setPaymentStatus('pending');
     startProgressAnimation();
+    isProcessingPayment.current = false;
     // Store values in refs to avoid stale closures
     paymentAmountRef.current = amount;
     const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod || '';
