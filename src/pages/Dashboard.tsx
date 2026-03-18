@@ -11,6 +11,9 @@ import { PromotionsCarousel } from "@/components/home/PromotionsCarousel";
 import { PopularServices } from "@/components/home/PopularServices";
 import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
 import { AdminOrdersPanel } from "@/components/admin/AdminOrdersPanel";
+import { AdminTransactionsPanel } from "@/components/admin/AdminTransactionsPanel";
+import { AdminNotifications } from "@/components/admin/AdminNotifications";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
 import {
@@ -19,7 +22,6 @@ import {
   ShoppingCart,
   Clock,
   CheckCircle2,
-  Bell,
   Plus,
   Loader2,
   Shield,
