@@ -183,6 +183,7 @@ export default function Wallet() {
         setPaymentReference(null);
         setIsRecharging(false);
         resetProgress();
+        isProcessingPayment.current = false;
         toast.error("Le paiement a échoué. Veuillez réessayer.");
       } else {
         console.log('Payment still pending, status:', status);
