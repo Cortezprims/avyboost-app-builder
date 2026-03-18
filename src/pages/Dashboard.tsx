@@ -13,6 +13,7 @@ import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
 import { AdminOrdersPanel } from "@/components/admin/AdminOrdersPanel";
 import { AdminTransactionsPanel } from "@/components/admin/AdminTransactionsPanel";
 import { AdminNotifications } from "@/components/admin/AdminNotifications";
+import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
