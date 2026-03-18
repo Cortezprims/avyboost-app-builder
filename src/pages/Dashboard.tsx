@@ -83,10 +83,7 @@ export default function Dashboard() {
             </Link>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-destructive rounded-full border-2 border-background" />
-              </Button>
+              <NotificationBell />
               <Link to="/profile">
                 <Avatar className="w-8 h-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
