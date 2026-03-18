@@ -171,6 +171,7 @@ export default function Wallet() {
           setPhoneNumber("");
           setIsRecharging(false);
           resetProgress();
+          isProcessingPayment.current = false;
         }, 2000);
         
       } else if (status === 'FAILED' || status === 'CANCELLED') {
