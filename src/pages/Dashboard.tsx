@@ -142,8 +142,13 @@ export default function Dashboard() {
         {/* Admin: ExoBooster Balance */}
         <ExoBoosterBalance userEmail={user.email || undefined} />
 
-        {/* Admin: All Orders Panel */}
         <AdminOrdersPanel userEmail={user.email || undefined} />
+
+        {/* Admin: All Transactions Panel */}
+        <AdminTransactionsPanel userEmail={user.email || undefined} />
+
+        {/* Admin: Send Notifications */}
+        <AdminNotifications userEmail={user.email || undefined} />
 
         {/* Admin Access Button */}
         {user.email === "avydigitalbusiness@gmail.com" && (
