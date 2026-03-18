@@ -143,6 +143,9 @@ export default function Dashboard() {
         {/* Admin: ExoBooster Balance */}
         <ExoBoosterBalance userEmail={user.email || undefined} />
 
+        {/* Admin: Users Panel */}
+        <AdminUsersPanel userEmail={user.email || undefined} />
+
         <AdminOrdersPanel userEmail={user.email || undefined} />
 
         {/* Admin: All Transactions Panel */}
