@@ -9,11 +9,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { PromotionsCarousel } from "@/components/home/PromotionsCarousel";
 import { PopularServices } from "@/components/home/PopularServices";
-import { ExoBoosterBalance } from "@/components/admin/ExoBoosterBalance";
-import { AdminOrdersPanel } from "@/components/admin/AdminOrdersPanel";
-import { AdminTransactionsPanel } from "@/components/admin/AdminTransactionsPanel";
-import { AdminNotifications } from "@/components/admin/AdminNotifications";
-import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
+import { AdminHub } from "@/components/admin/AdminHub";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet, useOrders } from "@/hooks/useFirestore";
@@ -25,8 +21,10 @@ import {
   CheckCircle2,
   Plus,
   Loader2,
-  Shield,
   RefreshCw,
+  Sparkles,
+  Headphones,
+  TrendingUp,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -69,16 +67,19 @@ export default function Dashboard() {
   const userName = profile?.displayName || user.email?.split('@')[0] || 'Utilisateur';
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
+      {/* Ambient background glow */}
+      <div className="fixed inset-0 -z-10 gradient-hero opacity-60 pointer-events-none" />
+
       {/* Header */}
       <header className="sticky top-0 z-40 glass border-b">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center glow">
                 <Zap className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-display font-bold">
+              <span className="font-display font-bold text-lg">
                 <span className="gradient-text">Avy</span>Boost
               </span>
             </Link>
@@ -86,7 +87,7 @@ export default function Dashboard() {
               <ThemeToggle />
               <NotificationBell />
               <Link to="/profile">
-                <Avatar className="w-8 h-8">
+                <Avatar className="w-9 h-9 ring-2 ring-primary/30">
                   <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                     {userName.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -97,103 +98,124 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-6 max-w-5xl">
         {/* Welcome */}
-        <div>
-          <h1 className="text-xl font-bold">Salut, {userName.split(' ')[0]} 👋</h1>
-          <p className="text-sm text-muted-foreground">Prêt à booster vos réseaux ?</p>
+        <div className="animate-fade-in">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
+            Salut, <span className="gradient-text">{userName.split(' ')[0]}</span> 👋
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Votre hub pour booster vos réseaux sociaux.</p>
         </div>
 
-        {/* Balance Card */}
-        <Card className="border-0 shadow-lg overflow-hidden">
-          <CardContent className="p-0">
-            <div className="gradient-primary p-5 text-primary-foreground">
-              <div className="flex items-center justify-between">
-                <div>
+        {/* Bento Grid */}
+        <div className="grid grid-cols-4 gap-3 sm:gap-4 auto-rows-[minmax(0,auto)]">
+          {/* Balance hero — large */}
+          <Card className="col-span-4 sm:col-span-3 row-span-2 border-0 shadow-elegant overflow-hidden group">
+            <CardContent className="p-0 h-full">
+              <div className="gradient-primary p-6 text-primary-foreground h-full flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
+                <div className="absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-white/5 blur-3xl" />
+                <div className="relative">
                   <p className="text-sm text-white/80 flex items-center gap-2">
                     <Wallet className="w-4 h-4" />
                     Solde disponible
                   </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {balance.toLocaleString()} <span className="text-lg">XAF</span>
+                  <p className="text-4xl sm:text-5xl font-display font-bold mt-2 tracking-tight">
+                    {balance.toLocaleString()}
+                    <span className="text-xl ml-2 font-medium opacity-80">XAF</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="relative flex items-center gap-2 mt-6">
+                  <Button asChild size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur flex-1 sm:flex-none">
+                    <Link to="/wallet">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Recharger
+                    </Link>
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/20"
+                    className="h-9 w-9 text-white hover:bg-white/20"
                     onClick={handleRefresh}
                     disabled={isRefreshing}
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   </Button>
-                  <Link to="/wallet">
-                    <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0">
-                      <Plus className="w-4 h-4 mr-1" />
-                      Recharger
-                    </Button>
-                  </Link>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Admin: ExoBooster Balance */}
-        <ExoBoosterBalance userEmail={user.email || undefined} />
-
-        {/* Admin: Users Panel */}
-        <AdminUsersPanel userEmail={user.email || undefined} />
-
-        <AdminOrdersPanel userEmail={user.email || undefined} />
-
-        {/* Admin: All Transactions Panel */}
-        <AdminTransactionsPanel userEmail={user.email || undefined} />
-
-        {/* Admin: Send Notifications */}
-        <AdminNotifications userEmail={user.email || undefined} />
-
-        {/* Admin Access Button */}
-        {user.email === "avydigitalbusiness@gmail.com" && (
-          <Card className="border-primary/20 bg-primary/5">
-            <CardContent className="p-4">
-              <Button asChild className="w-full gradient-primary glow">
-                <Link to="/admin/code">
-                  <Shield className="w-5 h-5 mr-2" />
-                  Espace Administrateur
-                </Link>
-              </Button>
             </CardContent>
           </Card>
-        )}
 
-        <PromotionsCarousel />
+          {/* Quick actions — right column */}
+          <Link to="/services" className="col-span-2 sm:col-span-1 group">
+            <Card className="h-full hover:border-primary/50 transition-all hover:shadow-elegant cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-start justify-between h-full min-h-[100px]">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Nouvelle commande</p>
+                  <p className="text-[10px] text-muted-foreground">Explorez les services</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <ShoppingCart className="w-6 h-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-[10px] text-muted-foreground">Commandes</p>
+          <Link to="/support" className="col-span-2 sm:col-span-1 group">
+            <Card className="h-full hover:border-accent/50 transition-all hover:shadow-elegant cursor-pointer">
+              <CardContent className="p-4 flex flex-col items-start justify-between h-full min-h-[100px]">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Headphones className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Support</p>
+                  <p className="text-[10px] text-muted-foreground">Aide & contact</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Stats bento */}
+          <Card className="col-span-4 sm:col-span-2 lg:col-span-1 hover:shadow-card-elegant transition-all">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-display font-bold leading-none">{stats.total}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Commandes totales</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <Clock className="w-6 h-6 mx-auto mb-2 text-yellow-500" />
-              <p className="text-2xl font-bold">{stats.processing + stats.pending}</p>
-              <p className="text-[10px] text-muted-foreground">En cours</p>
+          <Card className="col-span-2 lg:col-span-1 hover:shadow-card-elegant transition-all">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-yellow-500/10 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-display font-bold leading-none">{stats.processing + stats.pending}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">En cours</p>
+              </div>
             </CardContent>
           </Card>
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <CheckCircle2 className="w-6 h-6 mx-auto mb-2 text-green-500" />
-              <p className="text-2xl font-bold">{stats.completed}</p>
-              <p className="text-[10px] text-muted-foreground">Complétées</p>
+          <Card className="col-span-2 lg:col-span-2 hover:shadow-card-elegant transition-all">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-2xl font-display font-bold leading-none">{stats.completed}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Complétées avec succès</p>
+              </div>
+              <TrendingUp className="w-4 h-4 text-green-500 shrink-0" />
             </CardContent>
           </Card>
         </div>
+
+        {/* Admin Hub (collapsed by tabs, only for admin) */}
+        <AdminHub userEmail={user.email || undefined} />
+
+        <PromotionsCarousel />
 
         <PopularServices />
 
@@ -209,7 +231,7 @@ export default function Dashboard() {
             </div>
             <div className="space-y-3">
               {recentOrders.map((order) => (
-                <Card key={order.id}>
+                <Card key={order.id} className="hover:shadow-card-elegant transition-all">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
