@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useOrders, useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useExoBooster } from "@/hooks/useExoBooster";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAuthedFn } from "@/lib/invokeFn";
 import { useSyncedServices, useDynamicPrice } from "@/hooks/useSyncedPrices";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
 import { serviceTypes, qualityBadges } from "@/data/services";
@@ -158,15 +158,13 @@ export default function Services() {
           // Send alert email to admin
           try {
             const balanceResult = await getExoBoosterBalance();
-            await supabase.functions.invoke('alert-low-balance', {
-              body: {
-                customerEmail: user.email || "Inconnu",
-                serviceName: `${selectedServiceData?.name} ${currentPlatformConfig.name}`,
-                quantity: selectedPrice.qty,
-                amount: totalPrice,
-                exoBoosterBalance: balanceResult?.balance || "0",
-                targetUrl: accountUrl,
-              },
+            await invokeAuthedFn('alert-low-balance', {
+              customerEmail: user.email || "Inconnu",
+              serviceName: `${selectedServiceData?.name} ${currentPlatformConfig.name}`,
+              quantity: selectedPrice.qty,
+              amount: totalPrice,
+              exoBoosterBalance: balanceResult?.balance || "0",
+              targetUrl: accountUrl,
             });
             console.log("Alert email sent to admin");
           } catch (alertError) {

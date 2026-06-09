@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useWallet } from "@/hooks/useFirestore";
 import { useAuth } from "@/hooks/useAuth";
 import { Timestamp } from "firebase/firestore";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAuthedFn } from "@/lib/invokeFn";
 import mtnLogo from "@/assets/mtn-momo-logo.png";
 import orangeLogo from "@/assets/orange-money-logo.png";
 import {
@@ -104,9 +104,7 @@ export default function Wallet() {
 
   const checkPaymentStatus = async (reference: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('campay-payment', {
-        body: { action: 'status', reference }
-      });
+      const { data, error } = await invokeAuthedFn('campay-payment', { action: 'status', reference });
 
       console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
 
@@ -219,14 +217,12 @@ export default function Wallet() {
     paymentMethodRef.current = methodName;
 
     try {
-      const { data, error } = await supabase.functions.invoke('campay-payment', {
-        body: {
-          action: 'collect',
-          phone: phoneNumber,
-          amount: amount,
-          description: `Recharge AVYboost - ${user?.email || 'User'}`,
-          external_reference: `avyboost_${user?.uid}_${Date.now()}`
-        }
+      const { data, error } = await invokeAuthedFn('campay-payment', {
+        action: 'collect',
+        phone: phoneNumber,
+        amount: amount,
+        description: `Recharge AVYboost - ${user?.email || 'User'}`,
+        external_reference: `avyboost_${user?.uid}_${Date.now()}`,
       });
 
       console.log('Campay collect response:', data);
