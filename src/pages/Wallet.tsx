@@ -104,7 +104,7 @@ export default function Wallet() {
 
   const checkPaymentStatus = async (reference: string) => {
     try {
-      const { data, error } = await invokeAuthedFn('campay-payment', { action: 'status', reference });
+      const { data, error } = await invokeAuthedFn<any>('campay-payment', { action: 'status', reference });
 
       console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
 
@@ -217,7 +217,7 @@ export default function Wallet() {
     paymentMethodRef.current = methodName;
 
     try {
-      const { data, error } = await invokeAuthedFn('campay-payment', {
+      const { data, error } = await invokeAuthedFn<any>('campay-payment', {
         action: 'collect',
         phone: phoneNumber,
         amount: amount,
