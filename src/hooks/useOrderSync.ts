@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { invokeAuthedFn } from '@/lib/invokeFn';
 import { doc, updateDoc, serverTimestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Order } from '@/lib/firestore';
@@ -44,9 +44,10 @@ const calculateDelivered = (startCount: string, remains: string, quantity: numbe
 
 export const syncOrderStatus = async (orderId: string, exoboosterOrderId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.functions.invoke('exobooster', {
-      body: { action: 'status', orderId: exoboosterOrderId }
-    });
+    const { data, error } = await invokeAuthedFn<{ success: boolean; data: ExoBoosterStatus }>(
+      'exobooster',
+      { action: 'status', orderId: exoboosterOrderId },
+    );
 
     if (error) {
       console.error('Error fetching ExoBooster status:', error);

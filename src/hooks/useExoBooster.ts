@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAuthedFn } from "@/lib/invokeFn";
 
 export interface ExoBoosterService {
   service: string;
@@ -41,16 +41,17 @@ export function useExoBooster() {
     setError(null);
 
     try {
-      const { data: result, error: fnError } = await supabase.functions.invoke('exobooster', {
-        body: data,
-      });
+      const { data: result, error: fnError } = await invokeAuthedFn<{ success: boolean; data: T; error?: string }>(
+        'exobooster',
+        data,
+      );
 
       if (fnError) {
         throw new Error(fnError.message);
       }
 
-      if (result.error) {
-        throw new Error(result.error);
+      if (!result || result.error) {
+        throw new Error(result?.error || 'Request failed');
       }
 
       return result.data as T;
