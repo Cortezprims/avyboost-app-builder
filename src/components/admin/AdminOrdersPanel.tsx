@@ -27,8 +27,7 @@ import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/fire
 import { db } from "@/lib/firebase";
 import { Order } from "@/lib/firestore";
 import { platformConfig, PlatformKey } from "@/components/icons/SocialIcons";
-
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface AdminOrdersPanelProps {
   userEmail?: string;
@@ -48,8 +47,7 @@ export function AdminOrdersPanel({ userEmail }: AdminOrdersPanelProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-
-  const isAdmin = userEmail === ADMIN_EMAIL;
+  const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
     if (!isAdmin) {
