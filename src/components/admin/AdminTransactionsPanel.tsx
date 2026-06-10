@@ -20,8 +20,6 @@ export function AdminTransactionsPanel({ userEmail }: { userEmail?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const isAdmin = userEmail === ADMIN_EMAIL;
-
   useEffect(() => {
     if (!isAdmin) { setLoading(false); return; }
     setLoading(true);
