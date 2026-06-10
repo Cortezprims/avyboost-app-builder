@@ -8,14 +8,15 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { toast } from "sonner";
 
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function AdminNotifications({ userEmail }: { userEmail?: string }) {
+  const { isAdmin } = useIsAdmin();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
-  if (userEmail !== ADMIN_EMAIL) return null;
+  if (!isAdmin) return null;
 
   const handleSend = async () => {
     if (!title.trim() || !message.trim()) {
