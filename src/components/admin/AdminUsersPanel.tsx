@@ -9,8 +9,7 @@ import {
 import { Loader2, Search, Users, AlertCircle, Crown } from "lucide-react";
 import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface UserData {
   uid: string;
@@ -27,8 +26,7 @@ export function AdminUsersPanel({ userEmail }: { userEmail?: string }) {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-
-  const isAdmin = userEmail === ADMIN_EMAIL;
+  const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
     if (!isAdmin) { setLoading(false); return; }
@@ -138,7 +136,7 @@ export function AdminUsersPanel({ userEmail }: { userEmail?: string }) {
                     <TableCell>
                       <div>
                         <p className="font-medium text-sm flex items-center gap-1">
-                          {user.email === ADMIN_EMAIL && <Crown className="w-3 h-3 text-yellow-500" />}
+                          {(user as any).role === 'admin' && <Crown className="w-3 h-3 text-yellow-500" />}
                           {user.displayName || 'Sans nom'}
                         </p>
                         <p className="text-xs text-muted-foreground">{user.email}</p>
