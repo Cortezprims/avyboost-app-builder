@@ -11,9 +11,10 @@ import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/fire
 import { db } from "@/lib/firebase";
 import { Transaction } from "@/lib/firestore";
 
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function AdminTransactionsPanel({ userEmail }: { userEmail?: string }) {
+  const { isAdmin } = useIsAdmin();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
