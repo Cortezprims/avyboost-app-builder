@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw, DollarSign, AlertTriangle } from "lucide-react";
 import { useExoBooster } from "@/hooks/useExoBooster";
-
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 interface ExoBoosterBalanceProps {
   userEmail?: string;
@@ -16,8 +15,7 @@ export function ExoBoosterBalance({ userEmail }: ExoBoosterBalanceProps) {
   const [balance, setBalance] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>("USD");
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-
-  const isAdmin = userEmail === ADMIN_EMAIL;
+  const { isAdmin } = useIsAdmin();
 
   const fetchBalance = async () => {
     const result = await getBalance();
