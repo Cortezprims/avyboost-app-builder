@@ -9,10 +9,11 @@ import { AdminTransactionsPanel } from "./AdminTransactionsPanel";
 import { AdminNotifications } from "./AdminNotifications";
 import { ExoBoosterBalance } from "./ExoBoosterBalance";
 
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 
 export function AdminHub({ userEmail }: { userEmail?: string }) {
-  if (userEmail !== ADMIN_EMAIL) return null;
+  const { isAdmin } = useIsAdmin();
+  if (!isAdmin) return null;
 
   return (
     <Card className="border-primary/20 shadow-elegant overflow-hidden animate-fade-in">

@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { ArrowLeft, Download, FileCode, Loader2, Lock } from "lucide-react";
-
-const ADMIN_EMAIL = "avydigitalbusiness@gmail.com";
 
 // All source code compiled into one document
 const SOURCE_CODE = `
@@ -984,8 +983,7 @@ verify_jwt = false
 export default function AdminCodeExport() {
   const { user, loading: authLoading } = useAuth();
   const [downloading, setDownloading] = useState(false);
-
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const { isAdmin } = useIsAdmin();
 
   const handleDownload = () => {
     setDownloading(true);
