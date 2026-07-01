@@ -477,25 +477,21 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* Phone Number */}
-            <div>
-              <p className="text-sm font-medium mb-3">Numéro de téléphone</p>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="tel"
-                  placeholder="6XXXXXXXX"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                  className="pl-10"
-                  maxLength={9}
-                  disabled={isRecharging}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Numéro {selectedMethod === 'mtn' ? 'MTN' : selectedMethod === 'orange' ? 'Orange' : 'Mobile Money'}
-              </p>
+            {/* PayUnit hosted-checkout info */}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">PayUnit</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
             </div>
+
+            {hostedUrl && paymentStatus === 'checking' && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(hostedUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Rouvrir la page de paiement
+              </Button>
+            )}
 
             {/* Payment Status with Progress Bar */}
             {paymentStatus !== 'idle' && (
@@ -545,7 +541,7 @@ export default function Wallet() {
               size="lg"
               className="w-full gradient-primary glow"
               onClick={handleRecharge}
-              disabled={!rechargeAmount || !selectedMethod || !phoneNumber || phoneNumber.length < 9 || isRecharging}
+              disabled={!rechargeAmount || parseInt(rechargeAmount) < 500 || isRecharging}
             >
               {isRecharging ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
