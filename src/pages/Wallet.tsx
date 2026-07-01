@@ -23,7 +23,7 @@ import {
   TrendingUp,
   ArrowLeft,
   Loader2,
-  Phone,
+  ExternalLink,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,11 +40,11 @@ export default function Wallet() {
   const { balance, transactions, loading: walletLoading, recharge, refreshBalance } = useWallet();
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [activeTab, setActiveTab] = useState("recharge");
   const [isRecharging, setIsRecharging] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking' | 'success'>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
+  const [hostedUrl, setHostedUrl] = useState<string | null>(null);
   const [paymentProgress, setPaymentProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const statusCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -104,7 +104,10 @@ export default function Wallet() {
 
   const checkPaymentStatus = async (reference: string) => {
     try {
-      const { data, error } = await invokeAuthedFn<any>('campay-payment', { action: 'status', reference });
+      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+        action: 'status',
+        transaction_id: reference,
+      });
 
       console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
 
@@ -113,14 +116,20 @@ export default function Wallet() {
         return;
       }
 
-      // Campay peut retourner le statut de différentes façons
-      // data.data.status ou data.status - vérifier les deux
-      const statusData = data?.data || data;
-      const status = statusData?.status?.toUpperCase?.() || '';
+      // PayUnit response shape: { success, data: { status/data: {...} } }
+      const outer = data?.data ?? data;
+      const inner = outer?.data ?? outer;
+      const rawStatus =
+        inner?.transaction_status ||
+        inner?.status ||
+        outer?.transaction_status ||
+        outer?.status ||
+        '';
+      const status = String(rawStatus).toUpperCase();
       
-      console.log('Extracted status:', status, 'from statusData:', statusData);
+      console.log('Extracted PayUnit status:', status);
 
-      if (status === 'SUCCESSFUL' || status === 'SUCCESS') {
+      if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
         // Prevent duplicate processing
         if (isProcessingPayment.current) {
           console.log('Payment already being processed, skipping duplicate');
@@ -164,9 +173,9 @@ export default function Wallet() {
         setTimeout(() => {
           setPaymentStatus('idle');
           setPaymentReference(null);
+          setHostedUrl(null);
           setRechargeAmount("");
           setSelectedMethod(null);
-          setPhoneNumber("");
           setIsRecharging(false);
           resetProgress();
           isProcessingPayment.current = false;
@@ -179,6 +188,7 @@ export default function Wallet() {
         }
         setPaymentStatus('idle');
         setPaymentReference(null);
+        setHostedUrl(null);
         setIsRecharging(false);
         resetProgress();
         isProcessingPayment.current = false;
@@ -198,14 +208,6 @@ export default function Wallet() {
       toast.error("Montant minimum : 500 XAF");
       return;
     }
-    if (!selectedMethod) {
-      toast.error("Sélectionnez un mode de paiement");
-      return;
-    }
-    if (!phoneNumber || phoneNumber.length < 9) {
-      toast.error("Entrez un numéro de téléphone valide");
-      return;
-    }
 
     setIsRecharging(true);
     setPaymentStatus('pending');
@@ -213,41 +215,50 @@ export default function Wallet() {
     isProcessingPayment.current = false;
     // Store values in refs to avoid stale closures
     paymentAmountRef.current = amount;
-    const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || selectedMethod || '';
+    const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money';
     paymentMethodRef.current = methodName;
 
+    const transactionId = `avy_${(user?.uid || 'anon').slice(0, 20)}_${Date.now()}`;
+
     try {
-      const { data, error } = await invokeAuthedFn<any>('campay-payment', {
-        action: 'collect',
-        phone: phoneNumber,
-        amount: amount,
+      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+        action: 'initialize',
+        amount,
+        transaction_id: transactionId,
+        return_url: `${window.location.origin}/wallet`,
+        payment_country: 'CM',
         description: `Recharge AVYboost - ${user?.email || 'User'}`,
-        external_reference: `avyboost_${user?.uid}_${Date.now()}`,
       });
 
-      console.log('Campay collect response:', data);
+      console.log('PayUnit initialize response:', data);
 
       if (error) {
         throw new Error(error.message || 'Erreur de paiement');
       }
-
       if (data?.error) {
         throw new Error(data.error);
       }
 
-      if (data?.data?.reference) {
-        const reference = data.data.reference;
-        setPaymentReference(reference);
+      const payload = data?.data?.data ?? data?.data ?? {};
+      const transactionUrl: string | undefined = payload.transaction_url;
+      const returnedId: string = payload.transaction_id || transactionId;
+
+      if (transactionUrl) {
+        setPaymentReference(returnedId);
+        setHostedUrl(transactionUrl);
         setPaymentStatus('checking');
-        
-        toast.info("Confirmez le paiement sur votre téléphone", {
-          description: data.data.ussd_code ? `Composez ${data.data.ussd_code}` : undefined,
-          duration: 10000
+
+        // Open PayUnit hosted checkout in a new tab
+        window.open(transactionUrl, '_blank', 'noopener,noreferrer');
+
+        toast.info("Finalisez le paiement dans l'onglet PayUnit", {
+          description: "Nous vérifions automatiquement la transaction.",
+          duration: 8000,
         });
 
-        // Start checking payment status every 5 seconds
+        // Poll payment status every 5 seconds
         statusCheckInterval.current = setInterval(() => {
-          checkPaymentStatus(reference);
+          checkPaymentStatus(returnedId);
         }, 5000);
 
         // Stop checking after 3 minutes
@@ -261,9 +272,10 @@ export default function Wallet() {
             toast.error("Délai expiré. Vérifiez votre historique.");
           }
         }, 180000);
-        
-        // Clear timeout if payment completes before 3 minutes
+
         return () => clearTimeout(timeoutId);
+      } else {
+        throw new Error("URL de paiement introuvable");
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erreur lors du paiement";
@@ -465,25 +477,21 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* Phone Number */}
-            <div>
-              <p className="text-sm font-medium mb-3">Numéro de téléphone</p>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="tel"
-                  placeholder="6XXXXXXXX"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
-                  className="pl-10"
-                  maxLength={9}
-                  disabled={isRecharging}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Numéro {selectedMethod === 'mtn' ? 'MTN' : selectedMethod === 'orange' ? 'Orange' : 'Mobile Money'}
-              </p>
+            {/* PayUnit hosted-checkout info */}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">PayUnit</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
             </div>
+
+            {hostedUrl && paymentStatus === 'checking' && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => window.open(hostedUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Rouvrir la page de paiement
+              </Button>
+            )}
 
             {/* Payment Status with Progress Bar */}
             {paymentStatus !== 'idle' && (
@@ -533,7 +541,7 @@ export default function Wallet() {
               size="lg"
               className="w-full gradient-primary glow"
               onClick={handleRecharge}
-              disabled={!rechargeAmount || !selectedMethod || !phoneNumber || phoneNumber.length < 9 || isRecharging}
+              disabled={!rechargeAmount || parseInt(rechargeAmount) < 500 || isRecharging}
             >
               {isRecharging ? (
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
