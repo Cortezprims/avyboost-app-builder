@@ -8,6 +8,7 @@ import { AdminOrdersPanel } from "./AdminOrdersPanel";
 import { AdminTransactionsPanel } from "./AdminTransactionsPanel";
 import { AdminNotifications } from "./AdminNotifications";
 import { ExoBoosterBalance } from "./ExoBoosterBalance";
+import { RefreshExoPrices } from "./RefreshExoPrices";
 
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -44,6 +45,9 @@ export function AdminHub({ userEmail }: { userEmail?: string }) {
           <TabsContent value="tx" className="mt-4"><AdminTransactionsPanel userEmail={userEmail} /></TabsContent>
           <TabsContent value="notif" className="mt-4"><AdminNotifications userEmail={userEmail} /></TabsContent>
           <TabsContent value="exo" className="mt-4"><ExoBoosterBalance userEmail={userEmail} /></TabsContent>
+          <TabsContent value="exo" className="mt-4 space-y-3">
+            <RefreshExoPrices />
+          </TabsContent>
           <TabsContent value="code" className="mt-4">
             <div className="text-center py-6 space-y-3">
               <Code2 className="w-12 h-12 mx-auto text-primary" />
