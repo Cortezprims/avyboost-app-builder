@@ -44,9 +44,9 @@ export function AdminHub({ userEmail }: { userEmail?: string }) {
           <TabsContent value="orders" className="mt-4"><AdminOrdersPanel userEmail={userEmail} /></TabsContent>
           <TabsContent value="tx" className="mt-4"><AdminTransactionsPanel userEmail={userEmail} /></TabsContent>
           <TabsContent value="notif" className="mt-4"><AdminNotifications userEmail={userEmail} /></TabsContent>
-          <TabsContent value="exo" className="mt-4"><ExoBoosterBalance userEmail={userEmail} /></TabsContent>
           <TabsContent value="exo" className="mt-4 space-y-3">
             <RefreshExoPrices />
+            <ExoBoosterBalance userEmail={userEmail} />
           </TabsContent>
           <TabsContent value="code" className="mt-4">
             <div className="text-center py-6 space-y-3">
