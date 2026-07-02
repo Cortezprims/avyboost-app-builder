@@ -2,12 +2,15 @@ import { useMemo } from 'react';
 import { services, Service, ServicePrice, PlatformServices } from '@/data/services';
 import { exoboosterMapping } from '@/data/exoboosterMapping';
 import { calculateAvyPrice } from '@/lib/priceSync';
+import { resolveRate } from '@/lib/liveRates';
+import { useLiveRatesVersion } from '@/hooks/useLiveExoRates';
 
 /**
  * Hook qui retourne les services avec les prix synchronisés
  * basés sur les tarifs ExoBooster + marge de 25%
  */
 export function useSyncedServices(): PlatformServices {
+  const version = useLiveRatesVersion();
   return useMemo(() => {
     const syncedServices: PlatformServices = {};
     
@@ -24,7 +27,7 @@ export function useSyncedServices(): PlatformServices {
         // Recalculer les prix avec le taux ExoBooster + marge
         const syncedPrices: ServicePrice[] = service.prices.map(priceItem => ({
           ...priceItem,
-          price: calculateAvyPrice(exoInfo.rate, priceItem.qty)
+          price: calculateAvyPrice(resolveRate(exoInfo), priceItem.qty)
         }));
         
         return {
@@ -35,7 +38,7 @@ export function useSyncedServices(): PlatformServices {
     }
     
     return syncedServices;
-  }, []);
+  }, [version]);
 }
 
 /**
@@ -56,6 +59,7 @@ export function useSyncedService(platform: string, serviceId: number): Service |
  * Calcule le prix dynamique pour une quantité personnalisée
  */
 export function useDynamicPrice(platform: string, serviceId: number, quantity: number): number | null {
+  const version = useLiveRatesVersion();
   return useMemo(() => {
     // Guard against invalid inputs to prevent crashes
     if (!platform || !serviceId || serviceId <= 0 || quantity <= 0) {
@@ -68,6 +72,6 @@ export function useDynamicPrice(platform: string, serviceId: number, quantity: n
     const exoInfo = platformMapping[serviceId];
     if (!exoInfo || typeof exoInfo.rate !== 'number') return null;
     
-    return calculateAvyPrice(exoInfo.rate, quantity);
-  }, [platform, serviceId, quantity]);
+    return calculateAvyPrice(resolveRate(exoInfo), quantity);
+  }, [platform, serviceId, quantity, version]);
 }

@@ -3,6 +3,7 @@
 // Conversion en XAF avec marge de 25%
 
 import { exoboosterMapping, ExoBoosterServiceInfo } from '@/data/exoboosterMapping';
+import { resolveRate } from '@/lib/liveRates';
 
 // Taux de change USD vers XAF (basé sur les prix ExoBooster observés)
 // ExoBooster affiche: 1128 XAF pour rate 1.41 USD → 1128/1.41 = 800 XAF/USD
@@ -67,7 +68,7 @@ export function generateServicePrices(
   
   return quantities.map(qty => ({
     qty,
-    price: calculateAvyPrice(exoInfo.rate, qty),
+    price: calculateAvyPrice(resolveRate(exoInfo), qty),
     ...(quality && { quality })
   }));
 }
@@ -85,7 +86,7 @@ export function getUnitPrice(platform: string, avyServiceId: number): number | n
   const exoInfo = platformMapping[avyServiceId];
   if (!exoInfo) return null;
   
-  return calculateAvyPrice(exoInfo.rate, 1000);
+  return calculateAvyPrice(resolveRate(exoInfo), 1000);
 }
 
 /**
@@ -102,7 +103,7 @@ export function getPricingInfo(platform: string, avyServiceId: number): {
   
   return {
     exoInfo,
-    unitPriceXAF: exoInfo ? calculateAvyPrice(exoInfo.rate, 1000) : null,
+    unitPriceXAF: exoInfo ? calculateAvyPrice(resolveRate(exoInfo), 1000) : null,
     marginPercentage: MARGIN_PERCENTAGE * 100,
     exchangeRate: USD_TO_XAF_RATE
   };
@@ -126,7 +127,7 @@ export function calculateDynamicPrice(
   const exoInfo = platformMapping[avyServiceId];
   if (!exoInfo) return null;
   
-  return calculateAvyPrice(exoInfo.rate, quantity);
+  return calculateAvyPrice(resolveRate(exoInfo), quantity);
 }
 
 /**
@@ -145,7 +146,7 @@ export function getSyncedPricesForPlatform(platform: string): Record<number, Cal
     
     result[serviceId] = quantities.map(qty => ({
       qty,
-      price: calculateAvyPrice(exoInfo.rate, qty)
+      price: calculateAvyPrice(resolveRate(exoInfo), qty)
     }));
   }
   

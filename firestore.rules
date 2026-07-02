@@ -63,6 +63,13 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Config: public runtime config (e.g. live ExoBooster rates).
+    // Any signed-in user can read; only admins (or trusted server code) write.
+    match /config/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // Default deny — anything not matched above is locked down.
     match /{document=**} {
       allow read, write: if false;

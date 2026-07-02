@@ -13,30 +13,38 @@ import Support from "./pages/Support";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import AdminCodeExport from "./pages/AdminCodeExport";
+import { useLiveExoRatesSync } from "@/hooks/useLiveExoRates";
 
 const queryClient = new QueryClient();
+
+const AppRoutes = () => {
+  useLiveExoRatesSync();
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/services/:platform" element={<Services />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/admin/code" element={<AdminCodeExport />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/services/:platform" element={<Services />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin/code" element={<AdminCodeExport />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AppRoutes />
     </TooltipProvider>
   </QueryClientProvider>
 );
