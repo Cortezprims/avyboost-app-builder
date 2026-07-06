@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { RefreshCw, Coins, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { db } from "@/lib/firebase";
-import { invokeAuthedFn } from "@/lib/invokeFn";
-
-type PricesMap = Record<string, { rate: number; min: number; max: number; name: string; category: string }>;
+import { readCachedExoPrices, refreshExoPricesFromBackend } from "@/lib/exoPriceCache";
 
 export function RefreshExoPrices() {
   const [loading, setLoading] = useState(false);
@@ -15,42 +11,22 @@ export function RefreshExoPrices() {
   const [count, setCount] = useState<number>(0);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "config", "exoPrices"), (snap) => {
-      const data = snap.data() as { updatedAt?: any; rates?: Record<string, number> } | undefined;
-      if (data?.updatedAt?.toDate) setLastSync(data.updatedAt.toDate());
-      if (data?.rates) setCount(Object.keys(data.rates).length);
-    });
-    return () => unsub();
+    const cached = readCachedExoPrices();
+    if (!cached) return;
+    setLastSync(new Date(cached.updatedAt));
+    setCount(cached.count);
   }, []);
 
   const refresh = async () => {
     setLoading(true);
     try {
-      const { data, error } = await invokeAuthedFn<{
-        success: boolean;
-        data: PricesMap;
-        count: number;
-      }>("exobooster-prices", {});
-
-      if (error) throw new Error(error.message);
-      if (!data?.success || !data.data) throw new Error("Réponse ExoBooster invalide");
-
-      const rates: Record<string, number> = {};
-      for (const [exoId, info] of Object.entries(data.data)) {
-        if (info && typeof info.rate === "number" && info.rate > 0) {
-          rates[exoId] = info.rate;
-        }
-      }
-
-      await setDoc(doc(db, "config", "exoPrices"), {
-        rates,
-        count: Object.keys(rates).length,
-        updatedAt: serverTimestamp(),
-      });
+      const result = await refreshExoPricesFromBackend();
+      setLastSync(new Date(result.updatedAt));
+      setCount(result.count);
 
       toast({
         title: "Tarifs actualisés",
-        description: `${Object.keys(rates).length} services synchronisés depuis ExoBooster.`,
+        description: `${result.count} services synchronisés depuis ExoBooster.`,
       });
     } catch (e: any) {
       toast({
