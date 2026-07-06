@@ -99,6 +99,66 @@ export const services: PlatformServices = {
       badges: ["premium"],
       deliveryTime: "6-12 heures"
     },
+    {
+      id: 7,
+      name: "Vues Haute Qualité",
+      type: "views",
+      prices: [
+        { qty: 1000, price: 90, quality: "haute" },
+        { qty: 10000, price: 900, quality: "haute" },
+        { qty: 100000, price: 9000, quality: "haute" },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-2 heures"
+    },
+    {
+      id: 8,
+      name: "Sauvegardes Vidéo",
+      type: "saves",
+      prices: [
+        { qty: 1000, price: 10 },
+        { qty: 10000, price: 100 },
+        { qty: 100000, price: 1000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 9,
+      name: "Partages Vidéo",
+      type: "shares",
+      prices: [
+        { qty: 1000, price: 100 },
+        { qty: 5000, price: 500 },
+        { qty: 10000, price: 1000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 24,
+      name: "Commentaires Haute Qualité",
+      type: "comments",
+      prices: [
+        { qty: 10, price: 550 },
+        { qty: 25, price: 1375 },
+        { qty: 50, price: 2750 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "6-12 heures"
+    },
+    {
+      id: 25,
+      name: "Likes pour Direct Live",
+      type: "live",
+      prices: [
+        { qty: 100, price: 20, label: "100 likes" },
+        { qty: 500, price: 100, label: "500 likes" },
+        { qty: 1000, price: 200, label: "1000 likes" },
+      ],
+      badges: ["fast"],
+      deliveryTime: "Pendant le live"
+    },
   ],
   
   instagram: [
@@ -272,6 +332,42 @@ export const services: PlatformServices = {
       badges: ["fast"],
       deliveryTime: "Pendant le live"
     },
+    {
+      id: 26,
+      name: "Reposts Instagram",
+      type: "shares",
+      prices: [
+        { qty: 1000, price: 400 },
+        { qty: 5000, price: 2000 },
+        { qty: 10000, price: 4000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "2-6 heures"
+    },
+    {
+      id: 27,
+      name: "Commentaires Haute Qualité",
+      type: "comments",
+      prices: [
+        { qty: 10, price: 130 },
+        { qty: 25, price: 325 },
+        { qty: 50, price: 650 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "2-12 heures"
+    },
+    {
+      id: 28,
+      name: "Likes Instagram USA",
+      type: "likes",
+      prices: [
+        { qty: 1000, price: 1720, quality: "haute" },
+        { qty: 5000, price: 8600, quality: "haute" },
+        { qty: 10000, price: 17200, quality: "haute" },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-3 heures"
+    },
   ],
 
   facebook: [
@@ -385,6 +481,138 @@ export const services: PlatformServices = {
       badges: ["premium"],
       deliveryTime: "6-24 heures"
     },
+    {
+      id: 39,
+      name: "Vues Vidéo Haute Qualité",
+      type: "views",
+      prices: [
+        { qty: 1000, price: 150, quality: "haute" },
+        { qty: 10000, price: 1500, quality: "haute" },
+        { qty: 100000, price: 15000, quality: "haute" },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 48,
+      name: "Réaction J'aime",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 420 },
+        { qty: 5000, price: 2100 },
+        { qty: 10000, price: 4200 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 49,
+      name: "Réaction Haha",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 420 },
+        { qty: 5000, price: 2100 },
+        { qty: 10000, price: 4200 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 58,
+      name: "Réaction Wow",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 420 },
+        { qty: 5000, price: 2100 },
+        { qty: 10000, price: 4200 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 59,
+      name: "Réaction Triste",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 420 },
+        { qty: 5000, price: 2100 },
+        { qty: 10000, price: 4200 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 66,
+      name: "Réaction En colère",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 420 },
+        { qty: 5000, price: 2100 },
+        { qty: 10000, price: 4200 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-6 heures"
+    },
+    {
+      id: 67,
+      name: "Membres Groupe Qualité Moyenne",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 1200, quality: "moyenne" },
+        { qty: 5000, price: 6000, quality: "moyenne" },
+        { qty: 10000, price: 12000, quality: "moyenne" },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 jours"
+    },
+    {
+      id: 68,
+      name: "Membres Groupe Haute Qualité",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 1800, quality: "haute" },
+        { qty: 5000, price: 9000, quality: "haute" },
+        { qty: 10000, price: 18000, quality: "haute" },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-3 jours"
+    },
+    {
+      id: 69,
+      name: "Commentaires Personnalisés Masculin",
+      type: "comments",
+      prices: [
+        { qty: 10, price: 910 },
+        { qty: 25, price: 2275 },
+        { qty: 50, price: 4550 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "6-24 heures"
+    },
+    {
+      id: 74,
+      name: "Commentaires Personnalisés Féminin",
+      type: "comments",
+      prices: [
+        { qty: 10, price: 1040 },
+        { qty: 25, price: 2600 },
+        { qty: 50, price: 5200 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "6-24 heures"
+    },
+    {
+      id: 75,
+      name: "Avis pour Page",
+      type: "comments",
+      prices: [
+        { qty: 10, price: 560 },
+        { qty: 25, price: 1400 },
+        { qty: 50, price: 2800 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-3 jours"
+    },
   ],
 
   youtube: [
@@ -448,6 +676,18 @@ export const services: PlatformServices = {
         { qty: 10000, price: 60000 },
       ],
       badges: ["guaranteed"],
+      deliveryTime: "1-3 jours"
+    },
+    {
+      id: 76,
+      name: "Likes Haute Qualité",
+      type: "likes",
+      prices: [
+        { qty: 1000, price: 6000, quality: "haute" },
+        { qty: 5000, price: 30000, quality: "haute" },
+        { qty: 10000, price: 60000, quality: "haute" },
+      ],
+      badges: ["premium", "guaranteed"],
       deliveryTime: "1-3 jours"
     },
     {
@@ -591,20 +831,224 @@ export const services: PlatformServices = {
       badges: ["fast"],
       deliveryTime: "1-3 heures"
     },
+    {
+      id: 64,
+      name: "Réactions Pouce",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 30 },
+        { qty: 5000, price: 150 },
+        { qty: 10000, price: 300 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 65,
+      name: "Réactions Cœur",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 30 },
+        { qty: 5000, price: 150 },
+        { qty: 10000, price: 300 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 77,
+      name: "Vues Automatiques",
+      type: "views",
+      prices: [
+        { qty: 1000, price: 4 },
+        { qty: 10000, price: 40 },
+        { qty: 100000, price: 400 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "Automatique"
+    },
+    {
+      id: 78,
+      name: "Réactions Négatives",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 30 },
+        { qty: 5000, price: 150 },
+        { qty: 10000, price: 300 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 79,
+      name: "Réactions Feu",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 30 },
+        { qty: 5000, price: 150 },
+        { qty: 10000, price: 300 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 80,
+      name: "Réactions Rire",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 30 },
+        { qty: 5000, price: 150 },
+        { qty: 10000, price: 300 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
   ],
 
   whatsapp: [
     {
       id: 120,
-      name: "Membres Groupe",
+      name: "Membres Chaîne Mondial",
       type: "members",
       prices: [
-        { qty: 100, price: 6000 },
-        { qty: 250, price: 14000 },
-        { qty: 500, price: 27000 },
+        { qty: 1000, price: 2800 },
+        { qty: 5000, price: 14000 },
+        { qty: 10000, price: 28000 },
       ],
       popular: true,
       badges: ["premium", "guaranteed"],
+      deliveryTime: "1-7 jours"
+    },
+    {
+      id: 121,
+      name: "Membres Chaîne États-Unis",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 4500 },
+        { qty: 5000, price: 22500 },
+        { qty: 10000, price: 45000 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-7 jours"
+    },
+    {
+      id: 122,
+      name: "Membres Chaîne Inde",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 4500 },
+        { qty: 5000, price: 22500 },
+        { qty: 10000, price: 45000 },
+      ],
+      badges: ["premium"],
+      deliveryTime: "1-7 jours"
+    },
+    {
+      id: 123,
+      name: "Réactions Emoji Mix",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 124,
+      name: "Réactions Emoji Pouce",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 125,
+      name: "Réactions Emoji Cœur",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 126,
+      name: "Réactions Emoji Rire",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 127,
+      name: "Réactions Emoji Surprise",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 128,
+      name: "Réactions Emoji Triste",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 129,
+      name: "Réactions Emoji Prière",
+      type: "reactions",
+      prices: [
+        { qty: 1000, price: 1400 },
+        { qty: 5000, price: 7000 },
+        { qty: 10000, price: 14000 },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-3 heures"
+    },
+    {
+      id: 130,
+      name: "Membres Potato Chat Moyenne Qualité",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 4900, quality: "moyenne" },
+        { qty: 5000, price: 24500, quality: "moyenne" },
+        { qty: 10000, price: 49000, quality: "moyenne" },
+      ],
+      badges: ["fast"],
+      deliveryTime: "1-7 jours"
+    },
+    {
+      id: 131,
+      name: "Membres Potato Chat Haute Qualité",
+      type: "members",
+      prices: [
+        { qty: 1000, price: 8300, quality: "haute" },
+        { qty: 5000, price: 41500, quality: "haute" },
+        { qty: 10000, price: 83000, quality: "haute" },
+      ],
+      badges: ["premium"],
       deliveryTime: "1-7 jours"
     },
   ],
@@ -617,6 +1061,9 @@ export const serviceTypes = [
   { id: "views", name: "Vues" },
   { id: "comments", name: "Commentaires" },
   { id: "shares", name: "Partages" },
+  { id: "saves", name: "Sauvegardes" },
+  { id: "reactions", name: "Réactions" },
+  { id: "live", name: "Live" },
   { id: "members", name: "Membres" },
   { id: "subscribers", name: "Abonnés" },
 ];
