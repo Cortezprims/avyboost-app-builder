@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { verifyFirebaseRequest, unauthorizedResponse } from "../_shared/firebase-auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,9 @@ serve(async (req) => {
   }
 
   try {
+    const user = await verifyFirebaseRequest(req);
+    if (!user) return unauthorizedResponse(corsHeaders);
+
     console.log("Fetching ExoBooster services/prices...");
 
     if (!EXOBOOSTER_API_KEY) {
@@ -38,7 +42,7 @@ serve(async (req) => {
       action: 'services',
     });
 
-    console.log("Calling ExoBooster API for services...");
+    console.log("Calling ExoBooster API for services, uid:", user.uid);
 
     const response = await fetch(EXOBOOSTER_API_URL, {
       method: 'POST',
@@ -70,10 +74,12 @@ serve(async (req) => {
     
     if (Array.isArray(services)) {
       for (const service of services) {
+        const rate = parseFloat(service.rate);
+        if (!Number.isFinite(rate) || rate <= 0) continue;
         pricesMap[service.service] = {
-          rate: parseFloat(service.rate),
-          min: parseInt(service.min),
-          max: parseInt(service.max),
+          rate,
+          min: parseInt(service.min) || 1,
+          max: parseInt(service.max) || 1000000,
           name: service.name,
           category: service.category,
         };

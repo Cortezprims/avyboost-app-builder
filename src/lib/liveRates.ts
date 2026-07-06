@@ -1,13 +1,15 @@
-// Runtime cache of live ExoBooster rates (USD per 1000).
-// Populated from Firestore `config/exoPrices` by `useLiveExoRatesSync`.
-// Keyed by ExoBooster service id.
+// Runtime cache of ExoBooster rates (USD per 1000), keyed by service id.
+// It starts with the latest admin-provided snapshot, then live API values are
+// merged in when the backend refresh succeeds.
 
-let liveRates: Record<number, number> = {};
+import { exoboosterSnapshotRates } from "@/data/exoboosterSnapshotRates";
+
+let liveRates: Record<number, number> = { ...exoboosterSnapshotRates };
 let version = 0;
 const listeners = new Set<() => void>();
 
 export function setLiveRates(rates: Record<number, number>) {
-  liveRates = rates || {};
+  liveRates = { ...exoboosterSnapshotRates, ...(rates || {}) };
   version += 1;
   listeners.forEach((l) => l());
 }

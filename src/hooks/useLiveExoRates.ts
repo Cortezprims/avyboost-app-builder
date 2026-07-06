@@ -1,34 +1,45 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import {
   setLiveRates,
   getLiveRatesVersion,
   subscribeLiveRates,
 } from "@/lib/liveRates";
+import {
+  isFreshExoCache,
+  readCachedExoPrices,
+  refreshExoPricesFromBackend,
+} from "@/lib/exoPriceCache";
 
 /**
- * Subscribes to `config/exoPrices` and pushes live ExoBooster rates into the
- * module-level cache used by `priceSync`. Mount ONCE at the app root.
+ * Loads ExoBooster rates into the module-level cache used by `priceSync`.
+ * Firestore rules are no longer required: rates are read from a local cache,
+ * then refreshed through the secured backend once an authenticated user exists.
  */
 export function useLiveExoRatesSync() {
   useEffect(() => {
-    const unsub = onSnapshot(
-      doc(db, "config", "exoPrices"),
-      (snap) => {
-        const data = snap.data() as { rates?: Record<string, number> } | undefined;
-        if (!data?.rates) return;
-        const parsed: Record<number, number> = {};
-        for (const [k, v] of Object.entries(data.rates)) {
-          const id = Number(k);
-          const rate = Number(v);
-          if (id && rate > 0) parsed[id] = rate;
-        }
-        setLiveRates(parsed);
-      },
-      (err) => console.warn("[liveRates] snapshot error", err),
-    );
-    return () => unsub();
+    let cancelled = false;
+    const cached = readCachedExoPrices();
+    if (cached) setLiveRates(cached.rates);
+
+    const refreshIfNeeded = async () => {
+      if (cancelled || isFreshExoCache(readCachedExoPrices())) return;
+      try {
+        await refreshExoPricesFromBackend();
+      } catch (err) {
+        console.warn("[liveRates] backend refresh error", err);
+      }
+    };
+
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) void refreshIfNeeded();
+    });
+
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 }
 
