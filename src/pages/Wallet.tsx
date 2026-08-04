@@ -219,16 +219,16 @@ export default function Wallet() {
     const transactionId = `avy_${(user?.uid || 'anon').slice(0, 20)}_${Date.now()}`;
 
     try {
-      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+      const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
         action: 'initialize',
         amount,
-        transaction_id: transactionId,
-        return_url: `${window.location.origin}/wallet`,
-        payment_country: 'CM',
+        reference: transactionId,
+        redirect_url: `${window.location.origin}/wallet`,
+        customer_name: user?.displayName || user?.email || 'Client AVYboost',
         description: `Recharge AVYboost - ${user?.email || 'User'}`,
       });
 
-      console.log('PayUnit initialize response:', data);
+      console.log('Korapay initialize response:', data);
 
       if (error) {
         throw new Error(error.message || 'Erreur de paiement');
@@ -238,18 +238,18 @@ export default function Wallet() {
       }
 
       const payload = data?.data?.data ?? data?.data ?? {};
-      const transactionUrl: string | undefined = payload.transaction_url;
-      const returnedId: string = payload.transaction_id || transactionId;
+      const transactionUrl: string | undefined = payload.checkout_url;
+      const returnedId: string = payload.reference || transactionId;
 
       if (transactionUrl) {
         setPaymentReference(returnedId);
         setHostedUrl(transactionUrl);
         setPaymentStatus('checking');
 
-        // Open PayUnit hosted checkout in a new tab
+        // Open Korapay hosted checkout in a new tab
         window.open(transactionUrl, '_blank', 'noopener,noreferrer');
 
-        toast.info("Finalisez le paiement dans l'onglet PayUnit", {
+        toast.info("Finalisez le paiement dans l'onglet Korapay", {
           description: "Nous vérifions automatiquement la transaction.",
           duration: 8000,
         });
