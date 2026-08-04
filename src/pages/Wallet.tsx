@@ -104,9 +104,9 @@ export default function Wallet() {
 
   const checkPaymentStatus = async (reference: string) => {
     try {
-      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+      const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
         action: 'status',
-        transaction_id: reference,
+        reference,
       });
 
       console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
@@ -116,20 +116,18 @@ export default function Wallet() {
         return;
       }
 
-      // PayUnit response shape: { success, data: { status/data: {...} } }
+      // Korapay response shape: { success, data: { status, reference, ... } }
       const outer = data?.data ?? data;
       const inner = outer?.data ?? outer;
       const rawStatus =
-        inner?.transaction_status ||
         inner?.status ||
-        outer?.transaction_status ||
         outer?.status ||
         '';
       const status = String(rawStatus).toUpperCase();
       
-      console.log('Extracted PayUnit status:', status);
+      console.log('Extracted Korapay status:', status);
 
-      if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
+      if (status === 'SUCCESS' || status === 'SUCCESSFUL' || status === 'PAID') {
         // Prevent duplicate processing
         if (isProcessingPayment.current) {
           console.log('Payment already being processed, skipping duplicate');
@@ -181,7 +179,7 @@ export default function Wallet() {
           isProcessingPayment.current = false;
         }, 2000);
         
-      } else if (status === 'FAILED' || status === 'CANCELLED') {
+      } else if (status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED') {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
