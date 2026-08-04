@@ -104,9 +104,9 @@ export default function Wallet() {
 
   const checkPaymentStatus = async (reference: string) => {
     try {
-      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+      const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
         action: 'status',
-        transaction_id: reference,
+        reference,
       });
 
       console.log('Payment status check - Full response:', JSON.stringify(data, null, 2));
@@ -116,20 +116,18 @@ export default function Wallet() {
         return;
       }
 
-      // PayUnit response shape: { success, data: { status/data: {...} } }
+      // Korapay response shape: { success, data: { status, reference, ... } }
       const outer = data?.data ?? data;
       const inner = outer?.data ?? outer;
       const rawStatus =
-        inner?.transaction_status ||
         inner?.status ||
-        outer?.transaction_status ||
         outer?.status ||
         '';
       const status = String(rawStatus).toUpperCase();
       
-      console.log('Extracted PayUnit status:', status);
+      console.log('Extracted Korapay status:', status);
 
-      if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
+      if (status === 'SUCCESS' || status === 'SUCCESSFUL' || status === 'PAID') {
         // Prevent duplicate processing
         if (isProcessingPayment.current) {
           console.log('Payment already being processed, skipping duplicate');
@@ -181,7 +179,7 @@ export default function Wallet() {
           isProcessingPayment.current = false;
         }, 2000);
         
-      } else if (status === 'FAILED' || status === 'CANCELLED') {
+      } else if (status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED') {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
@@ -221,16 +219,16 @@ export default function Wallet() {
     const transactionId = `avy_${(user?.uid || 'anon').slice(0, 20)}_${Date.now()}`;
 
     try {
-      const { data, error } = await invokeAuthedFn<any>('payunit-payment', {
+      const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
         action: 'initialize',
         amount,
-        transaction_id: transactionId,
-        return_url: `${window.location.origin}/wallet`,
-        payment_country: 'CM',
+        reference: transactionId,
+        redirect_url: `${window.location.origin}/wallet`,
+        customer_name: user?.displayName || user?.email || 'Client AVYboost',
         description: `Recharge AVYboost - ${user?.email || 'User'}`,
       });
 
-      console.log('PayUnit initialize response:', data);
+      console.log('Korapay initialize response:', data);
 
       if (error) {
         throw new Error(error.message || 'Erreur de paiement');
@@ -240,18 +238,18 @@ export default function Wallet() {
       }
 
       const payload = data?.data?.data ?? data?.data ?? {};
-      const transactionUrl: string | undefined = payload.transaction_url;
-      const returnedId: string = payload.transaction_id || transactionId;
+      const transactionUrl: string | undefined = payload.checkout_url;
+      const returnedId: string = payload.reference || transactionId;
 
       if (transactionUrl) {
         setPaymentReference(returnedId);
         setHostedUrl(transactionUrl);
         setPaymentStatus('checking');
 
-        // Open PayUnit hosted checkout in a new tab
+        // Open Korapay hosted checkout in a new tab
         window.open(transactionUrl, '_blank', 'noopener,noreferrer');
 
-        toast.info("Finalisez le paiement dans l'onglet PayUnit", {
+        toast.info("Finalisez le paiement dans l'onglet Korapay", {
           description: "Nous vérifions automatiquement la transaction.",
           duration: 8000,
         });
@@ -477,9 +475,9 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* PayUnit hosted-checkout info */}
+            {/* Korapay hosted-checkout info */}
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">PayUnit</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
+              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">Korapay</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
             </div>
 
             {hostedUrl && paymentStatus === 'checking' && (

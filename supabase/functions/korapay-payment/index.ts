@@ -7,25 +7,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-firebase-token",
 };
 
-const PAYUNIT_BASE_URL = "https://gateway.payunit.net";
-const PAYUNIT_API_KEY = Deno.env.get("PAYUNIT_API_KEY");
-const PAYUNIT_API_USER = Deno.env.get("PAYUNIT_API_USER");
-const PAYUNIT_API_PASSWORD = Deno.env.get("PAYUNIT_API_PASSWORD");
-const PAYUNIT_MODE = Deno.env.get("PAYUNIT_MODE") || "live";
+const KORAPAY_BASE_URL = "https://api.korapay.com/merchant/api/v1";
+const KORAPAY_SECRET_KEY = Deno.env.get("KORAPAY_SECRET_KEY");
 
 const MAX_AMOUNT = 1_000_000;
 const MIN_AMOUNT = 500;
-
-type Validated =
-  | {
-      action: "initialize";
-      amount: number;
-      return_url: string;
-      transaction_id: string;
-      payment_country?: string;
-      description?: string;
-    }
-  | { action: "status"; transaction_id: string };
+const CURRENCY = "XAF";
 
 function safeStr(v: unknown, max: number): string | undefined {
   if (typeof v !== "string") return undefined;
@@ -33,63 +20,57 @@ function safeStr(v: unknown, max: number): string | undefined {
   return cleaned || undefined;
 }
 
-function isHttpsUrl(v: unknown): v is string {
+function isHttpUrl(v: unknown): v is string {
   if (typeof v !== "string") return false;
   try {
     const u = new URL(v);
-    return u.protocol === "https:";
+    return u.protocol === "https:" || u.protocol === "http:";
   } catch {
     return false;
   }
 }
 
+type Validated =
+  | {
+      action: "initialize";
+      amount: number;
+      reference: string;
+      redirect_url: string;
+      description?: string;
+      customer_name?: string;
+    }
+  | { action: "status"; reference: string };
+
 function validate(input: unknown): { ok: true; data: Validated } | { ok: false; error: string } {
   if (!input || typeof input !== "object") return { ok: false, error: "Invalid payload" };
   const i = input as Record<string, unknown>;
+  const reference = safeStr(i.reference ?? i.transaction_id, 100);
+  if (!reference || !/^[A-Za-z0-9_-]{1,100}$/.test(reference)) {
+    return { ok: false, error: "Invalid reference" };
+  }
 
   if (i.action === "initialize") {
     const amount = typeof i.amount === "number" ? i.amount : Number(i.amount);
     if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount < MIN_AMOUNT || amount > MAX_AMOUNT) {
       return { ok: false, error: "Invalid amount" };
     }
-    if (!isHttpsUrl(i.return_url)) return { ok: false, error: "Invalid return_url" };
-    const transaction_id = safeStr(i.transaction_id, 100);
-    if (!transaction_id || !/^[A-Za-z0-9_-]{1,100}$/.test(transaction_id)) {
-      return { ok: false, error: "Invalid transaction_id" };
-    }
-    const payment_country = safeStr(i.payment_country, 4);
+    if (!isHttpUrl(i.redirect_url ?? i.return_url)) return { ok: false, error: "Invalid redirect_url" };
     return {
       ok: true,
       data: {
         action: "initialize",
         amount,
-        return_url: i.return_url as string,
-        transaction_id,
-        payment_country,
+        reference,
+        redirect_url: (i.redirect_url ?? i.return_url) as string,
         description: safeStr(i.description, 200),
+        customer_name: safeStr(i.customer_name, 100),
       },
     };
   }
 
-  if (i.action === "status") {
-    const transaction_id = safeStr(i.transaction_id, 100);
-    if (!transaction_id || !/^[A-Za-z0-9_-]{1,100}$/.test(transaction_id)) {
-      return { ok: false, error: "Invalid transaction_id" };
-    }
-    return { ok: true, data: { action: "status", transaction_id } };
-  }
+  if (i.action === "status") return { ok: true, data: { action: "status", reference } };
 
   return { ok: false, error: "Invalid action" };
-}
-
-function authHeaders() {
-  const basic = btoa(`${PAYUNIT_API_USER}:${PAYUNIT_API_PASSWORD}`);
-  return {
-    "Content-Type": "application/json",
-    "Authorization": `Basic ${basic}`,
-    "x-api-key": PAYUNIT_API_KEY ?? "",
-    "mode": PAYUNIT_MODE,
-  };
 }
 
 serve(async (req) => {
@@ -99,8 +80,8 @@ serve(async (req) => {
     const user = await verifyFirebaseRequest(req);
     if (!user) return unauthorizedResponse(corsHeaders);
 
-    if (!PAYUNIT_API_KEY || !PAYUNIT_API_USER || !PAYUNIT_API_PASSWORD) {
-      console.error("PayUnit credentials missing");
+    if (!KORAPAY_SECRET_KEY) {
+      console.error("Korapay secret key missing");
       return new Response(
         JSON.stringify({ error: "Payment service unavailable" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -116,28 +97,37 @@ serve(async (req) => {
       );
     }
     const data = v.data;
-    console.log("PayUnit request uid:", user.uid, "action:", data.action);
+    console.log("Korapay request uid:", user.uid, "action:", data.action);
+
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${KORAPAY_SECRET_KEY}`,
+    };
 
     let upstream: Response;
     if (data.action === "initialize") {
-      upstream = await fetch(`${PAYUNIT_BASE_URL}/api/gateway/initialize`, {
+      upstream = await fetch(`${KORAPAY_BASE_URL}/charges/initialize`, {
         method: "POST",
-        headers: authHeaders(),
+        headers,
         body: JSON.stringify({
-          total_amount: data.amount,
-          currency: "XAF",
-          transaction_id: data.transaction_id,
-          return_url: data.return_url,
-          payment_country: data.payment_country || "CM",
-          purchaseRef: data.transaction_id,
-          name: (data.description || "Recharge AVYboost").slice(0, 120),
-          description: data.description || "Recharge portefeuille AVYboost",
+          amount: data.amount,
+          currency: CURRENCY,
+          reference: data.reference,
+          redirect_url: data.redirect_url,
+          narration: data.description || "Recharge portefeuille AVYboost",
+          notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/korapay-payment`,
+          customer: {
+            name: data.customer_name || "Client AVYboost",
+            email: user.email || `${user.uid}@avyboost.app`,
+          },
+          merchant_bears_cost: false,
+          metadata: { uid: user.uid },
         }),
       });
     } else {
       upstream = await fetch(
-        `${PAYUNIT_BASE_URL}/api/gateway/paymentstatus/${encodeURIComponent(data.transaction_id)}`,
-        { method: "GET", headers: authHeaders() },
+        `${KORAPAY_BASE_URL}/charges/${encodeURIComponent(data.reference)}`,
+        { method: "GET", headers },
       );
     }
 
@@ -146,27 +136,27 @@ serve(async (req) => {
     try {
       json = JSON.parse(text);
     } catch {
-      console.error("PayUnit non-JSON response (server-only)", upstream.status);
+      console.error("Korapay non-JSON response (server-only)", upstream.status);
       return new Response(
         JSON.stringify({ error: "Payment service error" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    if (!upstream.ok || (json?.status && String(json.status).toUpperCase() === "ERROR")) {
-      console.error("PayUnit API error (server-only):", upstream.status, json);
+    if (!upstream.ok || json?.status === false) {
+      console.error("Korapay API error (server-only):", upstream.status, json);
       return new Response(
-        JSON.stringify({ error: "Payment request was rejected. Please try again." }),
+        JSON.stringify({ error: json?.message || "Payment request was rejected. Please try again." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, data: json }),
+      JSON.stringify({ success: true, data: json?.data ?? json }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
-    console.error("Error in payunit-payment function (server-only):", error);
+    console.error("Error in korapay-payment function (server-only):", error);
     return new Response(
       JSON.stringify({ error: "Unable to process payment. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
