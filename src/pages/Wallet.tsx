@@ -475,9 +475,9 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* PayUnit hosted-checkout info */}
+            {/* Korapay hosted-checkout info */}
             <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">PayUnit</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
+              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">Korapay</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
             </div>
 
             {hostedUrl && paymentStatus === 'checking' && (
