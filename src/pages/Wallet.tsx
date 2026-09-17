@@ -179,7 +179,10 @@ export default function Wallet() {
           isProcessingPayment.current = false;
         }, 2000);
         
-      } else if (status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED') {
+      } else if (
+        ['FAILED', 'FAILURE', 'CANCELLED', 'CANCELED', 'EXPIRED', 'ABANDONED', 'DECLINED', 'REVERSED']
+          .includes(status)
+      ) {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
@@ -260,10 +263,13 @@ export default function Wallet() {
         }, 5000);
 
         // Stop checking after 3 minutes
-        const timeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(async () => {
           if (statusCheckInterval.current) {
             clearInterval(statusCheckInterval.current);
             statusCheckInterval.current = null;
+            // Dernière vérification avant d'abandonner
+            await checkPaymentStatus(returnedId);
+            if (isProcessingPayment.current) return;
             setPaymentStatus('idle');
             setIsRecharging(false);
             resetProgress();

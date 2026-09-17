@@ -115,7 +115,7 @@ serve(async (req) => {
           reference: data.reference,
           redirect_url: data.redirect_url,
           narration: data.description || "Recharge portefeuille AVYboost",
-          notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/korapay-payment`,
+          
           customer: {
             name: data.customer_name || "Client AVYboost",
             email: user.email || `${user.uid}@avyboost.app`,
