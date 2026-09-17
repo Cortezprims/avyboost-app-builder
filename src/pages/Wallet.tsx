@@ -45,6 +45,11 @@ export default function Wallet() {
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'checking' | 'success'>('idle');
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
   const [hostedUrl, setHostedUrl] = useState<string | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otpRequired, setOtpRequired] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpMessage, setOtpMessage] = useState<string | null>(null);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [paymentProgress, setPaymentProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const statusCheckInterval = useRef<ReturnType<typeof setInterval> | null>(null);
