@@ -186,7 +186,7 @@ serve(async (req) => {
           },
           mobile_money: {
             number: data.phone,
-occ:          undefined,
+
           },
           merchant_bears_cost: false,
           metadata: { uid: user.uid, operator: data.operator },
