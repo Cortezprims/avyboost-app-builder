@@ -522,20 +522,55 @@ export default function Wallet() {
               </div>
             </div>
 
-            {/* Korapay hosted-checkout info */}
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-              Vous serez redirigé vers la page sécurisée <span className="font-semibold text-foreground">Korapay</span> pour finaliser le paiement. Le solde sera mis à jour automatiquement après confirmation.
+            {/* Numéro Mobile Money */}
+            <div>
+              <p className="text-sm font-medium mb-3">Numéro Mobile Money</p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                  +237
+                </span>
+                <Input
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="6XX XXX XXX"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/[^\d ]/g, ""))}
+                  disabled={isRecharging}
+                  className="pl-14"
+                />
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Le paiement se fait entièrement ici : validez simplement la demande reçue sur votre téléphone.
+              </p>
             </div>
 
-            {hostedUrl && paymentStatus === 'checking' && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => window.open(hostedUrl, '_blank', 'noopener,noreferrer')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Rouvrir la page de paiement
-              </Button>
+            {/* Saisie du code OTP si demandé */}
+            {otpRequired && (
+              <Card className="border border-primary/30 bg-primary/5">
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm font-medium">Code de confirmation</p>
+                  <p className="text-xs text-muted-foreground">
+                    {otpMessage || "Entrez le code reçu par SMS pour valider le paiement."}
+                  </p>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="Code reçu par SMS"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  />
+                  <Button
+                    className="w-full gradient-primary"
+                    onClick={handleSubmitOtp}
+                    disabled={isAuthorizing || otpCode.length < 3}
+                  >
+                    {isAuthorizing ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Valider le code
+                  </Button>
+                </CardContent>
+              </Card>
             )}
 
             {/* Payment Status with Progress Bar */}
