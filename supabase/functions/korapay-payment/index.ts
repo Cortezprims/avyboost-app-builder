@@ -13,6 +13,7 @@ const KORAPAY_SECRET_KEY = Deno.env.get("KORAPAY_SECRET_KEY");
 const MAX_AMOUNT = 1_000_000;
 const MIN_AMOUNT = 500;
 const CURRENCY = "XAF";
+const ALLOWED_OPERATORS = ["mtn", "orange"];
 
 function safeStr(v: unknown, max: number): string | undefined {
   if (typeof v !== "string") return undefined;
@@ -39,6 +40,16 @@ type Validated =
       description?: string;
       customer_name?: string;
     }
+  | {
+      action: "mobile_money";
+      amount: number;
+      reference: string;
+      phone: string;
+      operator: string;
+      description?: string;
+      customer_name?: string;
+    }
+  | { action: "authorize"; reference: string; otp: string }
   | { action: "status"; reference: string };
 
 function validate(input: unknown): { ok: true; data: Validated } | { ok: false; error: string } {
@@ -49,11 +60,17 @@ function validate(input: unknown): { ok: true; data: Validated } | { ok: false; 
     return { ok: false, error: "Invalid reference" };
   }
 
-  if (i.action === "initialize") {
+  const amountOf = () => {
     const amount = typeof i.amount === "number" ? i.amount : Number(i.amount);
     if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount < MIN_AMOUNT || amount > MAX_AMOUNT) {
-      return { ok: false, error: "Invalid amount" };
+      return null;
     }
+    return amount;
+  };
+
+  if (i.action === "initialize") {
+    const amount = amountOf();
+    if (amount === null) return { ok: false, error: "Invalid amount" };
     if (!isHttpUrl(i.redirect_url ?? i.return_url)) return { ok: false, error: "Invalid redirect_url" };
     return {
       ok: true,
@@ -66,6 +83,35 @@ function validate(input: unknown): { ok: true; data: Validated } | { ok: false; 
         customer_name: safeStr(i.customer_name, 100),
       },
     };
+  }
+
+  if (i.action === "mobile_money") {
+    const amount = amountOf();
+    if (amount === null) return { ok: false, error: "Invalid amount" };
+    const rawPhone = safeStr(i.phone, 20)?.replace(/[^\d+]/g, "") ?? "";
+    const digits = rawPhone.replace(/\D/g, "");
+    if (digits.length < 9 || digits.length > 15) return { ok: false, error: "Invalid phone number" };
+    const phone = digits.length === 9 ? `237${digits}` : digits;
+    const operator = (safeStr(i.operator, 20) || "").toLowerCase();
+    if (!ALLOWED_OPERATORS.includes(operator)) return { ok: false, error: "Invalid operator" };
+    return {
+      ok: true,
+      data: {
+        action: "mobile_money",
+        amount,
+        reference,
+        phone,
+        operator,
+        description: safeStr(i.description, 200),
+        customer_name: safeStr(i.customer_name, 100),
+      },
+    };
+  }
+
+  if (i.action === "authorize") {
+    const otp = safeStr(i.otp, 12);
+    if (!otp || !/^[0-9]{3,12}$/.test(otp)) return { ok: false, error: "Invalid OTP" };
+    return { ok: true, data: { action: "authorize", reference, otp } };
   }
 
   if (i.action === "status") return { ok: true, data: { action: "status", reference } };
@@ -104,6 +150,8 @@ serve(async (req) => {
       "Authorization": `Bearer ${KORAPAY_SECRET_KEY}`,
     };
 
+    const customerEmail = user.email || `${user.uid}@avyboost.app`;
+
     let upstream: Response;
     if (data.action === "initialize") {
       upstream = await fetch(`${KORAPAY_BASE_URL}/charges/initialize`, {
@@ -115,13 +163,42 @@ serve(async (req) => {
           reference: data.reference,
           redirect_url: data.redirect_url,
           narration: data.description || "Recharge portefeuille AVYboost",
-          
           customer: {
             name: data.customer_name || "Client AVYboost",
-            email: user.email || `${user.uid}@avyboost.app`,
+            email: customerEmail,
           },
           merchant_bears_cost: false,
           metadata: { uid: user.uid },
+        }),
+      });
+    } else if (data.action === "mobile_money") {
+      upstream = await fetch(`${KORAPAY_BASE_URL}/charges/mobile-money`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          amount: data.amount,
+          currency: CURRENCY,
+          reference: data.reference,
+          narration: data.description || "Recharge portefeuille AVYboost",
+          customer: {
+            name: data.customer_name || "Client AVYboost",
+            email: customerEmail,
+          },
+          mobile_money: {
+            number: data.phone,
+occ:          undefined,
+          },
+          merchant_bears_cost: false,
+          metadata: { uid: user.uid, operator: data.operator },
+        }),
+      });
+    } else if (data.action === "authorize") {
+      upstream = await fetch(`${KORAPAY_BASE_URL}/charges/mobile-money/authorise`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          reference: data.reference,
+          authorization: { otp: data.otp },
         }),
       });
     } else {
