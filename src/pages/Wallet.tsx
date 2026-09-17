@@ -208,18 +208,50 @@ export default function Wallet() {
     }
   };
 
+  const startPolling = (reference: string) => {
+    if (statusCheckInterval.current) clearInterval(statusCheckInterval.current);
+    statusCheckInterval.current = setInterval(() => {
+      checkPaymentStatus(reference);
+    }, 5000);
+
+    setTimeout(async () => {
+      if (statusCheckInterval.current) {
+        clearInterval(statusCheckInterval.current);
+        statusCheckInterval.current = null;
+        await checkPaymentStatus(reference);
+        if (isProcessingPayment.current) return;
+        setPaymentStatus('idle');
+        setIsRecharging(false);
+        setOtpRequired(false);
+        resetProgress();
+        toast.error("Délai expiré. Vérifiez votre historique.");
+      }
+    }, 180000);
+  };
+
   const handleRecharge = async () => {
     const amount = parseInt(rechargeAmount);
     if (!amount || amount < 500) {
       toast.error("Montant minimum : 500 XAF");
       return;
     }
+    if (!selectedMethod) {
+      toast.error("Choisissez un mode de paiement");
+      return;
+    }
+    const digits = phoneNumber.replace(/\D/g, "");
+    if (digits.length < 9) {
+      toast.error("Numéro Mobile Money invalide");
+      return;
+    }
 
     setIsRecharging(true);
     setPaymentStatus('pending');
+    setOtpRequired(false);
+    setOtpCode("");
+    setOtpMessage(null);
     startProgressAnimation();
     isProcessingPayment.current = false;
-    // Store values in refs to avoid stale closures
     paymentAmountRef.current = amount;
     const methodName = paymentMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money';
     paymentMethodRef.current = methodName;
@@ -228,70 +260,74 @@ export default function Wallet() {
 
     try {
       const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
-        action: 'initialize',
+        action: 'mobile_money',
         amount,
         reference: transactionId,
-        redirect_url: `${window.location.origin}/wallet`,
+        phone: digits,
+        operator: selectedMethod,
         customer_name: user?.displayName || user?.email || 'Client AVYboost',
         description: `Recharge AVYboost - ${user?.email || 'User'}`,
       });
 
-      console.log('Korapay initialize response:', data);
-
-      if (error) {
-        throw new Error(error.message || 'Erreur de paiement');
-      }
-      if (data?.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw new Error(error.message || 'Erreur de paiement');
+      if (data?.error) throw new Error(data.error);
 
       const payload = data?.data?.data ?? data?.data ?? {};
-      const transactionUrl: string | undefined = payload.checkout_url;
       const returnedId: string = payload.reference || transactionId;
+      const status = String(payload.status || '').toLowerCase();
+      const authModel = String(payload.auth_model || payload.authorization?.auth_model || '').toUpperCase();
 
-      if (transactionUrl) {
-        setPaymentReference(returnedId);
-        setHostedUrl(transactionUrl);
-        setPaymentStatus('checking');
+      setPaymentReference(returnedId);
+      setPaymentStatus('checking');
 
-        // Open Korapay hosted checkout in a new tab
-        window.open(transactionUrl, '_blank', 'noopener,noreferrer');
+      if (status === 'failed') {
+        throw new Error(payload.message || "Le paiement a été refusé");
+      }
 
-        toast.info("Finalisez le paiement dans l'onglet Korapay", {
-          description: "Nous vérifions automatiquement la transaction.",
+      if (authModel === 'OTP' || status === 'processing_otp') {
+        setOtpRequired(true);
+        setOtpMessage(payload.message || "Entrez le code reçu par SMS pour valider le paiement.");
+      } else {
+        toast.info("Validez le paiement sur votre téléphone", {
+          description: "Composez votre code Mobile Money puis patientez ici.",
           duration: 8000,
         });
-
-        // Poll payment status every 5 seconds
-        statusCheckInterval.current = setInterval(() => {
-          checkPaymentStatus(returnedId);
-        }, 5000);
-
-        // Stop checking after 3 minutes
-        const timeoutId = setTimeout(async () => {
-          if (statusCheckInterval.current) {
-            clearInterval(statusCheckInterval.current);
-            statusCheckInterval.current = null;
-            // Dernière vérification avant d'abandonner
-            await checkPaymentStatus(returnedId);
-            if (isProcessingPayment.current) return;
-            setPaymentStatus('idle');
-            setIsRecharging(false);
-            resetProgress();
-            toast.error("Délai expiré. Vérifiez votre historique.");
-          }
-        }, 180000);
-
-        return () => clearTimeout(timeoutId);
-      } else {
-        throw new Error("URL de paiement introuvable");
       }
+
+      startPolling(returnedId);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Erreur lors du paiement";
       toast.error(errorMessage);
       setPaymentStatus('idle');
       setIsRecharging(false);
+      setOtpRequired(false);
       resetProgress();
+    }
+  };
+
+  const handleSubmitOtp = async () => {
+    if (!paymentReference || otpCode.trim().length < 3) {
+      toast.error("Code invalide");
+      return;
+    }
+    setIsAuthorizing(true);
+    try {
+      const { data, error } = await invokeAuthedFn<any>('korapay-payment', {
+        action: 'authorize',
+        reference: paymentReference,
+        otp: otpCode.trim(),
+      });
+      if (error) throw new Error(error.message || "Code refusé");
+      if (data?.error) throw new Error(data.error);
+
+      setOtpRequired(false);
+      setOtpCode("");
+      toast.success("Code validé, confirmation en cours...");
+      await checkPaymentStatus(paymentReference);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Code refusé");
+    } finally {
+      setIsAuthorizing(false);
     }
   };
 
