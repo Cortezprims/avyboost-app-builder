@@ -179,7 +179,10 @@ export default function Wallet() {
           isProcessingPayment.current = false;
         }, 2000);
         
-      } else if (status === 'FAILED' || status === 'CANCELLED' || status === 'EXPIRED') {
+      } else if (
+        ['FAILED', 'FAILURE', 'CANCELLED', 'CANCELED', 'EXPIRED', 'ABANDONED', 'DECLINED', 'REVERSED']
+          .includes(status)
+      ) {
         if (statusCheckInterval.current) {
           clearInterval(statusCheckInterval.current);
           statusCheckInterval.current = null;
